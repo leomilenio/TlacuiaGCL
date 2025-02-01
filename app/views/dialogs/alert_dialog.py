@@ -1,4 +1,6 @@
+from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import QDialog, QVBoxLayout, QLabel, QListWidget, QPushButton, QListWidgetItem
+
 
 class AlertDialog(QDialog):
     def __init__(self, concesiones, parent=None):
@@ -12,6 +14,7 @@ class AlertDialog(QDialog):
         
         if concesiones:
             alert_label = QLabel("¡Tus siguientes concesiones están próximas a finalizar! ")
+            alert_label.setAlignment(Qt.AlignCenter)
             alert_label.setStyleSheet("font-size: 20px; font-weight: bold; color: #FFC107;")
             alert_label.setWordWrap(True)
             layout.addWidget(alert_label)
@@ -26,6 +29,7 @@ class AlertDialog(QDialog):
             layout.addWidget(self.lista_concesiones)
         else:
             no_alert_label = QLabel("No tienes concesiones próximas a finalizar")
+            no_alert_label.setAlignment(Qt.AlignCenter)
             no_alert_label.setStyleSheet("font-size: 16px; font-weight: bold; color: #4CAF50;")
             layout.addWidget(no_alert_label)
         

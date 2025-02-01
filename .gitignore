@@ -1,5 +1,6 @@
-* .pyc
-* .pyo
+** .pyc
+** .pyo
+**/__pycache__/
 
 concesiones.db
 

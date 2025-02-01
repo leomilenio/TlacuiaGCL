@@ -45,8 +45,6 @@ class ConcesionesDB:
                 FOREIGN KEY (concesion_id) REFERENCES Concesiones(id)
             );
                                   
-            ALTER TABLE Documentos ADD COLUMN tipo TEXT CHECK(tipo IN ('ingreso', 'corte'));
-    
             CREATE TABLE IF NOT EXISTS DocumentoProducto (
                 documento_id INTEGER NOT NULL,
                 producto_id INTEGER NOT NULL,
@@ -79,6 +77,18 @@ class ConcesionesDB:
         ''')
         self.conn.commit()
     
+
+    def obtener_documento_por_id(self, doc_id):
+        self.cursor.execute('SELECT nombre, tipo, contenido FROM Documentos WHERE id = ?', (doc_id,))
+        result = self.cursor.fetchone()
+        if result:
+            return {
+                'nombre': result[0],
+                'tipo': result[1],
+                'contenido': result[2]
+            }
+        return None
+
     def marcar_concesion_como_finalizada(self, concesion_id):
         self.cursor.execute('''
             UPDATE Concesiones 

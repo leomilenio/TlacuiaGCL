@@ -2,12 +2,13 @@ import os
 from PyQt5.QtWidgets import (QMainWindow, QListWidget, QListWidgetItem, QWidget, 
                             QVBoxLayout, QLabel, QTableWidget, QTableWidgetItem, 
                             QPushButton, QFileDialog, QMessageBox,QHBoxLayout, QSizePolicy,
-                            QDialog)
+                            QDialog, QAction, QMenu)
 from PyQt5.QtCore import Qt, QSize, QDate
 from app.models.database import ConcesionesDB
 from app.views.dialogs import (ProductoDialog, NewConcesionDialog, 
                               AlertDialog, FinConcesionDialog)
 from app.views.dialogs.concession_dialog import (EditConcesionDialog, ConcesionItem)
+from app.views.dialogs.about_dialog import AboutDialog
 from datetime import datetime
 
 
@@ -22,6 +23,13 @@ class MainWindow(QMainWindow):
 
         if os.path.exists('concesiones.db'):
             self.mostrar_alerta_concesiones()
+
+        menubar = self.menuBar()
+        help_menu = menubar.addMenu('Ayuda')
+
+        about_action = QAction('Acerca de', self)
+        about_action.triggered.connect(self.mostrar_acercaDe)
+        help_menu.addAction(about_action)
         
     def initUI(self):
         self.setGeometry(100, 100, 1300, 600)  # Aumentamos el tamaño de la ventana
@@ -157,6 +165,7 @@ class MainWindow(QMainWindow):
         self.lista_documentos.setStyleSheet("background: #012030; border-radius: 5px;")
         details_layout.addWidget(self.lista_documentos)
         
+        self.lista_documentos.itemDoubleClicked.connect(self.mostrar_menu_documento)
 
 
         # Botones de acción
@@ -210,6 +219,10 @@ class MainWindow(QMainWindow):
         main_widget.setLayout(main_layout)
         self.setCentralWidget(main_widget)
     
+    def mostrar_acercaDe(self):
+        dialog = AboutDialog()
+        dialog.exec()
+
     def manejar_exportar_pdf(self):
             if not self.current_concesion_id:
                 return
@@ -357,9 +370,9 @@ class MainWindow(QMainWindow):
                     'dias_restantes': dias_restantes
                 })
         
-        if concesiones_proximas or not concesiones:
-            dialog = AlertDialog(concesiones_proximas, self)
-            dialog.exec_()
+       # if concesiones_proximas or not concesiones:
+        dialog = AlertDialog(concesiones_proximas, self)
+        dialog.exec_()
 
     def mostrar_detalles_concesion(self):
         selected = self.lista.currentItem()
@@ -428,7 +441,9 @@ class MainWindow(QMainWindow):
         if self.current_concesion_id:
             documentos = self.db.obtener_documentos(self.current_concesion_id)
             for doc in documentos:
-                QListWidgetItem(f"{doc[2]} ({doc[3]})", self.lista_documentos)
+                item = QListWidgetItem(f"{doc[2]} ({doc[3]})")  # Nombre (Tipo)
+                item.setData(Qt.UserRole, doc[0])  # Almacenar ID del documento
+                self.lista_documentos.addItem(item)
     
     def editar_concesion(self):
         """Abre diálogo para editar la concesión seleccionada"""
@@ -470,7 +485,7 @@ class MainWindow(QMainWindow):
             "¿Estás seguro de eliminar esta concesión y todos sus documentos?",
             QMessageBox.Yes | QMessageBox.No
         )
-        
+
         if confirm == QMessageBox.Yes:
             self.db.cursor.execute("DELETE FROM Concesiones WHERE id = ?", (self.current_concesion_id,))
             self.db.conn.commit()
@@ -478,3 +493,63 @@ class MainWindow(QMainWindow):
             self.current_concesion_id = None
             self.lista_documentos.clear()
             self.tabla_productos.setRowCount(0)
+
+    def mostrar_menu_documento(self, item):
+        menu = QMenu(self)
+        
+        # Crear acciones
+        extraer_action = menu.addAction("Extraer información") # Falta accion de Extraer Informacion
+        exportar_action = menu.addAction("Exportar")
+        eliminar_action = menu.addAction("Eliminar")
+        
+        # Deshabilitar la primera acción
+        extraer_action.setEnabled(False)
+        
+        # Obtener ID del documento
+        doc_id = item.data(Qt.UserRole)
+        
+        # Conectar acciones a métodos
+        exportar_action.triggered.connect(lambda: self.exportar_documento(doc_id))
+        eliminar_action.triggered.connect(lambda: self.eliminar_documento(doc_id))
+        
+        # Mostrar menú en la posición del cursor
+        menu.exec_(self.cursor().pos())
+
+    def exportar_documento(self, doc_id):
+        documento = self.db.obtener_documento_por_id(doc_id)
+        if not documento:
+            QMessageBox.warning(self, "Error", "Documento no encontrado")
+            return
+        
+        # Crear sugerencia de nombre de archivo
+        extension = documento['tipo'].lower()
+        default_name = f"{documento['nombre']}.{extension}"
+        
+        filename, _ = QFileDialog.getSaveFileName(
+            self, 
+            "Exportar Documento", 
+            default_name,
+            f"{documento['tipo']} (*.{extension})"
+        )
+        
+        if filename:
+            try:
+                with open(filename, 'wb') as f:
+                    f.write(documento['contenido'])
+                QMessageBox.information(self, "Éxito", "Documento exportado correctamente")
+            except Exception as e:
+                QMessageBox.critical(self, "Error", f"No se pudo guardar: {str(e)}")
+
+    def eliminar_documento(self, doc_id):
+        confirm = QMessageBox.question(
+            self, 
+            "Confirmar Eliminación", 
+            "¿Estás seguro de eliminar este documento?",
+            QMessageBox.Yes | QMessageBox.No
+        )
+        
+        if confirm == QMessageBox.Yes:
+            self.db.cursor.execute("DELETE FROM Documentos WHERE id = ?", (doc_id,))
+            self.db.conn.commit()
+            self.actualizar_documentos()
+            QMessageBox.information(self, "Éxito", "Documento eliminado correctamente")

@@ -1,8 +1,10 @@
 import os
+import sys
+from app.models.json_extract import extract_version_from_file
 from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import letter
 from PyQt5.QtWidgets import QDialog, QVBoxLayout, QTableWidget, QPushButton, QMessageBox, QFileDialog, QSpinBox, QTableWidgetItem 
-
+from datetime import datetime
 
 class FinConcesionDialog(QDialog):
     def __init__(self, productos, parent=None, solo_lectura=False):
@@ -51,22 +53,38 @@ class FinConcesionDialog(QDialog):
             self, "Guardar PDF", "", "PDF (*.pdf)")
         
         if filename:
+            base_path = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+            file_path = os.path.join(base_path, 'models', 'dev_info.json')
+
+            metadata_version = extract_version_from_file(file_path)
+            version = metadata_version.get('version', 'desconocida')
+
+            fecha_actual = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
+
             c = canvas.Canvas(filename, pagesize=letter)
             width, height = letter
             
             # Encabezado
-            y = height - 50
+            y = height - 25
+            c.setFont("Helvetica-Bold", 12)
+            c.drawString(50, y, f"Tlacuia GCL {version}")
+            y -= 15
+
             c.setFont("Helvetica-Bold", 14)
             c.drawString(50, y, "Reporte Final de Concesión")
-            y -= 30
+            y -= 15
             
+            c.setFont("Helvetica-Bold", 10)
+            c.drawString(50, y, f"{fecha_actual}")
+            y -= 30
+
             # Columnas
             c.setFont("Helvetica-Bold", 10)
-            c.drawString(50, y, "Producto")
-            c.drawString(250, y, "Disponible")
-            c.drawString(350, y, "Vendido")
-            c.drawString(450, y, "Devolver")  # Nueva columna
-            c.drawString(550, y, "A Pagar")
+            c.drawString(25, y, "Producto")
+            c.drawString(225, y, "Disponible")
+            c.drawString(325, y, "Vendido")
+            c.drawString(425, y, "Devolver")  # Nueva columna
+            c.drawString(525, y, "A Pagar")
             y -= 20
             
             # Datos
@@ -88,22 +106,22 @@ class FinConcesionDialog(QDialog):
                 total_devolver += devolver
                 
                 # Dibujar fila
-                c.drawString(50, y, prod['descripcion'])
-                c.drawString(250, y, str(prod['cantidad']))
-                c.drawString(350, y, str(vendido))
-                c.drawString(450, y, str(devolver))  # Nueva columna
-                c.drawString(550, y, f"${monto:.2f}")
+                c.drawString(25, y, prod['descripcion'])
+                c.drawString(225, y, str(prod['cantidad']))
+                c.drawString(325, y, str(vendido))
+                c.drawString(425, y, str(devolver))  # Nueva columna
+                c.drawString(525, y, f"${monto:.2f}")
                 y -= 20
                 
                 if y < 100:
                     c.showPage()
                     y = height - 50
                     c.setFont("Helvetica-Bold", 10)
-                    c.drawString(50, y, "Producto")
-                    c.drawString(250, y, "Disponible")
-                    c.drawString(350, y, "Vendido")
-                    c.drawString(450, y, "Devolver")
-                    c.drawString(550, y, "Monto a Pagar")
+                    c.drawString(25, y, "Producto")
+                    c.drawString(225, y, "Disponible")
+                    c.drawString(325, y, "Vendido")
+                    c.drawString(425, y, "Devolver")
+                    c.drawString(525, y, "Monto a Pagar")
                     y -= 30
                     c.setFont("Helvetica", 10)
             
