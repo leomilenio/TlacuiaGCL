@@ -4,7 +4,7 @@
 ![PyQt5](https://img.shields.io/badge/PyQt5-5.15-green)
 ![SQLite](https://img.shields.io/badge/SQLite-3-lightgrey)
 
-Tlacuia GCL, del nahuatl *tomar prestado*, es un pequeña aplicacion de escritorio desarrollado en Python con PyQt5 y SQLite para poder facilitar la gestion de concesiones en librerias de tamaño mediano y pequeño al centralizarlo en este. Uno de los principales objetivos de Tlacuia es ayudar a los libreros con alertas de vencimiento de sus concesiones.
+Tlacuia GCL, del nahuatl *tomar prestado*, es un pequeña aplicacion de escritorio desarrollada en Python con PyQt5 y SQLite para poder facilitar la gestion de concesiones en librerias de tamaño mediano y pequeño al centralizarlo en este. Uno de los principales objetivos de Tlacuia es ayudar a los libreros con alertas de vencimiento de sus concesiones.
 
 ## Screenshots
 
@@ -33,13 +33,13 @@ Tlacuia GCL, del nahuatl *tomar prestado*, es un pequeña aplicacion de escritor
 - **Gestion de Conseciones**
 
     - Crear, editar y eliminar concesiones en una base de datos
-    - Registrar informacion detallade de las concesiones
+    - Registrar informacion detallada de las concesiones
     - Visualizacion grafica de las concesiones proximas a vencer
 
 - **Gestion de productos**
 
     - Permite agregar los productos asociados a la concesion
-    - Crecion de un reporte de corte al finalizar la concesion
+    -  Reporte de corte al finalizar la concesion
 
 - **Centralizacion de documentos**
 
