@@ -2,13 +2,14 @@ import os
 from PyQt5.QtWidgets import (QMainWindow, QListWidget, QListWidgetItem, QWidget, 
                             QVBoxLayout, QLabel, QTableWidget, QTableWidgetItem, 
                             QPushButton, QFileDialog, QMessageBox,QHBoxLayout, QSizePolicy,
-                            QDialog, QAction, QMenu)
+                            QDialog, QAction, QMenu, QDockWidget)
 from PyQt5.QtCore import Qt, QSize, QDate
 from app.models.database import ConcesionesDB
 from app.views.dialogs import (ProductoDialog, NewConcesionDialog, 
                               AlertDialog, FinConcesionDialog)
 from app.views.dialogs.concession_dialog import (EditConcesionDialog, ConcesionItem)
 from app.views.dialogs.about_dialog import AboutDialog
+from app.views.tools.table_extractor import PdfTableExtractor
 from datetime import datetime
 
 
@@ -24,13 +25,21 @@ class MainWindow(QMainWindow):
         if os.path.exists('concesiones.db'):
             self.mostrar_alerta_concesiones()
 
+            # Crear la barra de menú
         menubar = self.menuBar()
-        help_menu = menubar.addMenu('Ayuda')
+        
+        # Menú "Herramientas"
+        tools_menu = menubar.addMenu('Herramientas')
+        tableExtractor_action = QAction('Extractor de Tablas', self)
+        tableExtractor_action.triggered.connect(self.mostrar_pdf_extractor)
+        tools_menu.addAction(tableExtractor_action)
 
+        # Menú "Ayuda"
+        help_menu = menubar.addMenu('Ayuda')
         about_action = QAction('Acerca de', self)
         about_action.triggered.connect(self.mostrar_acercaDe)
         help_menu.addAction(about_action)
-        
+
     def initUI(self):
         self.setGeometry(100, 100, 1300, 600)  # Aumentamos el tamaño de la ventana
         self.setWindowTitle("Tlacuia - Gestor de Concesiones para Librerias")
@@ -553,3 +562,7 @@ class MainWindow(QMainWindow):
             self.db.conn.commit()
             self.actualizar_documentos()
             QMessageBox.information(self, "Éxito", "Documento eliminado correctamente")
+
+    def mostrar_pdf_extractor(self):
+        dialog = PdfTableExtractor()
+        dialog.exec()
