@@ -40,7 +40,7 @@ class ConcesionesDB:
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 concesion_id INTEGER NOT NULL,
                 nombre TEXT NOT NULL,
-                tipo TEXT CHECK(tipo IN ('PDF', 'Excel')),
+                tipo TEXT CHECK(tipo IN ('PDF', 'Excel', 'CSV')),
                 contenido BLOB NOT NULL,
                 FOREIGN KEY (concesion_id) REFERENCES Concesiones(id)
             );
@@ -107,6 +107,23 @@ class ConcesionesDB:
         concesion['status'] = self._calcular_status(concesion['fecha_recepcion'], concesion['fecha_vencimiento'])
         return concesion
 
+    def obtener_concesiones_no_finalizadas_con_emisor(self):
+            """Obtiene todas las concesiones no finalizadas con el nombre del emisor y folio,
+            filtrando solo aquellas que tienen documentos vinculados"""
+            self.cursor.execute('''
+            SELECT c.id, ge.nombre_emisor, c.folio, c.fecha_recepcion, c.fecha_vencimiento
+            FROM Concesiones c
+            JOIN grantingEmisor ge ON c.emisor_id = ge.id
+            WHERE c.finalizada = 0
+            AND EXISTS (
+                SELECT 1
+                FROM Documentos d
+                WHERE d.concesion_id = c.id
+            )
+            ''')
+            column_names = [column[0] for column in self.cursor.description]
+            return [dict(zip(column_names, row)) for row in self.cursor.fetchall()]
+
     def crear_emisor(self, nombre_emisor, nombre_vendedor):
         """Crea un nuevo emisor en grantingEmisor"""
         self.cursor.execute('''
@@ -146,8 +163,8 @@ class ConcesionesDB:
     
     def crear_documento(self, concesion_id, nombre, tipo, archivo_path):
         """Almacena un documento en la base de datos"""
-        if tipo not in ('PDF', 'Excel'):
-            raise ValueError("Tipo debe ser PDF o Excel")
+        if tipo not in ('PDF', 'Excel', 'CSV'):
+            raise ValueError("Tipo debe ser PDF, Excel o CSV")
         
         with open(archivo_path, 'rb') as f:
             contenido = f.read()
