@@ -10,6 +10,7 @@ from app.views.dialogs import (ProductoDialog, NewConcesionDialog,
 from app.views.dialogs.concession_dialog import (EditConcesionDialog, ConcesionItem)
 from app.views.dialogs.about_dialog import AboutDialog
 from app.views.tools.table_extractor import PdfTableExtractor
+from app.views.tools.congruence_analisis import AnalizadorCongruencias
 from datetime import datetime
 
 
@@ -30,10 +31,16 @@ class MainWindow(QMainWindow):
         
         # Menú "Herramientas"
         tools_menu = menubar.addMenu('Herramientas')
+
         tableExtractor_action = QAction('Extractor de Tablas', self)
         tableExtractor_action.triggered.connect(self.mostrar_pdf_extractor)
+        
+        congruenceAnalisisTool_action = QAction('Analizador de congruencia', self)
+        congruenceAnalisisTool_action.triggered.connect(self.mostrar_Analizador_Congruencia)
+        
         tools_menu.addAction(tableExtractor_action)
-
+        tools_menu.addAction(congruenceAnalisisTool_action)
+        
         # Menú "Ayuda"
         help_menu = menubar.addMenu('Ayuda')
         about_action = QAction('Acerca de', self)
@@ -507,17 +514,15 @@ class MainWindow(QMainWindow):
         menu = QMenu(self)
         
         # Crear acciones
-        extraer_action = menu.addAction("Extraer información") # Falta accion de Extraer Informacion
+        extraer_action = menu.addAction("Extraer información")
         exportar_action = menu.addAction("Exportar")
         eliminar_action = menu.addAction("Eliminar")
-        
-        # Deshabilitar la primera acción
-        extraer_action.setEnabled(False)
         
         # Obtener ID del documento
         doc_id = item.data(Qt.UserRole)
         
         # Conectar acciones a métodos
+        extraer_action.triggered.connect(lambda: self.abrir_extractor_con_documento(doc_id))
         exportar_action.triggered.connect(lambda: self.exportar_documento(doc_id))
         eliminar_action.triggered.connect(lambda: self.eliminar_documento(doc_id))
         
@@ -565,4 +570,75 @@ class MainWindow(QMainWindow):
 
     def mostrar_pdf_extractor(self):
         dialog = PdfTableExtractor()
+        dialog.exec()
+
+    def abrir_extractor_con_documento(self, doc_id):
+        """Abre PdfTableExtractor con el archivo PDF asociado al documento"""
+        print("Iniciando proceso para abrir PdfTableExtractor...")
+
+        # Obtener el documento desde la base de datos
+        print(f"Buscando documento con ID: {doc_id}")
+        documento = self.db.obtener_documento_por_id(doc_id)
+        if not documento:
+            print("Error: No se encontró el documento en la base de datos.")
+            QMessageBox.warning(self, "Error", "No se pudo encontrar el documento seleccionado.")
+            return
+
+        print("Documento encontrado. Creando archivo temporal...")
+
+        # Guardar el contenido del documento en un archivo temporal
+        temp_pdf_path = f"temp_doc_{doc_id}.pdf"
+        try:
+            with open(temp_pdf_path, 'wb') as f:
+                f.write(documento['contenido'])
+            print(f"Archivo temporal creado: {temp_pdf_path}")
+        except Exception as e:
+            print(f"Error al crear el archivo temporal: {str(e)}")
+            QMessageBox.critical(self, "Error", f"No se pudo guardar el archivo temporal: {str(e)}")
+            return
+
+        print("Creando instancia de PdfTableExtractor...")
+        # Crear y mostrar la ventana PdfTableExtractor
+        extractor = PdfTableExtractor()
+        print("Instancia de PdfTableExtractor creada.")
+
+        # Cargar el archivo en PdfTableExtractor
+        try:
+            print(f"Cargando archivo PDF desde: {temp_pdf_path}")
+            extractor.load_pdf_from_path(temp_pdf_path)
+            print("Archivo cargado correctamente en PdfTableExtractor.")
+        except Exception as e:
+            print(f"Error al cargar el archivo en PdfTableExtractor: {str(e)}")
+            QMessageBox.critical(self, "Error", f"No se pudo cargar el archivo en PdfTableExtractor: {str(e)}")
+            return
+
+        # Conectar el evento destroyed para eliminar el archivo temporal
+        print("Conectando evento destroyed para limpieza de archivos temporales...")
+        
+        # Usar una función segura para eliminar archivos temporales
+        def eliminar_temp_file():
+            print(f"Eliminando archivo temporal: {temp_pdf_path}")
+            self.eliminar_archivos_temporales([temp_pdf_path])
+
+        extractor.destroyed.connect(eliminar_temp_file)
+        print("Evento destroyed conectado.")
+
+        # Mostrar la ventana
+        print("Mostrando la ventana PdfTableExtractor...")
+        extractor.exec()  # Usar exec() en lugar de show()
+        self.actualizar_documentos()
+        print("Ventana PdfTableExtractor cerrada.")
+
+    def eliminar_archivos_temporales(self, files):
+        """Elimina archivos temporales"""
+        for file in files:
+            if os.path.exists(file):
+                try:
+                    os.remove(file)
+                    print(f"Archivo temporal eliminado: {file}")
+                except Exception as e:
+                    print(f"No se pudo eliminar el archivo temporal {file}: {str(e)}")
+
+    def mostrar_Analizador_Congruencia(self):
+        dialog = AnalizadorCongruencias()
         dialog.exec()

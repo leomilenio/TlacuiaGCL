@@ -1,10 +1,12 @@
 import os
+import re
 import sys
 import camelot
 import pandas as pd
 from PyQt5.QtWidgets import (QVBoxLayout, QHBoxLayout, QPushButton, QFileDialog,
                              QTableWidget, QTableWidgetItem, QSpinBox, QListWidget, QLabel,
-                             QMessageBox, QLineEdit, QComboBox, QListWidgetItem, QDialog, QInputDialog)
+                             QMessageBox, QLineEdit, QComboBox, QListWidgetItem, QDialog, QInputDialog,
+                             QApplication)
 from PyQt5.QtCore import Qt
 from app.models.database import ConcesionesDB
 
@@ -117,6 +119,9 @@ class PdfTableExtractor(QDialog):
         main_layout.addLayout(right_layout)
         self.setLayout(main_layout)
 
+        self.setAttribute(Qt.WA_DeleteOnClose)
+        self.destroyed.connect(self.eliminar_archivos_temporales)
+
     def load_pdf(self):
         file_path, _ = QFileDialog.getOpenFileName(
             self, "Seleccionar PDF", "", "PDF Files (*.pdf)")
@@ -135,6 +140,7 @@ class PdfTableExtractor(QDialog):
                     QMessageBox.warning(self, "Error", "No se encontraron tablas en el PDF")
             except Exception as e:
                 QMessageBox.critical(self, "Error", f"Error al procesar PDF: {str(e)}")
+
 
     def update_table_selector(self):
         selected_page = int(self.page_selector.currentText().split(" ")[1])
@@ -419,6 +425,7 @@ class PdfTableExtractor(QDialog):
             try:
                 self.db.crear_documento(concesion_id, "tabla_final.csv", "CSV", self.temp_csv_path)
                 QMessageBox.information(self, "Éxito", "Tabla final guardada correctamente en la concesión.")
+                self.eliminar_archivos_temporales()
                 self.close()
             except Exception as e:
                 QMessageBox.critical(self, "Error", f"Error al guardar el documento en la base de datos: {str(e)}")
@@ -517,3 +524,17 @@ class PdfTableExtractor(QDialog):
                 QMessageBox.warning(self, "Error", "No se encontraron tablas en el PDF")
         except Exception as e:
             QMessageBox.critical(self, "Error", f"Error al procesar PDF: {str(e)}")
+            
+    def eliminar_archivos_temporales(self):
+        """Elimina los archivos temporales generados durante la ejecución"""
+        temp_files = [self.temp_csv_path,
+                      *[f for f in os.listdir('.') if re.match(r'tem_.*\.pdf\.pdf$', f)]
+                      ] 
+         # Agregar aquí otros archivos temporales si los hay
+        for file in temp_files:
+            if os.path.exists(file):
+                try:
+                    os.remove(file)
+                    print(f"Archivo temporal eliminado: {file}")
+                except Exception as e:
+                    print(f"No se pudo eliminar el archivo temporal {file}: {str(e)}")
