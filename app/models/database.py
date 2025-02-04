@@ -271,22 +271,5 @@ class ConcesionesDB:
         result = self.cursor.fetchone()
         return result[0] if result else None
 
-    def is_database_empty(self):
-        """
-        Verifica si la base de datos está vacía.
-        Retorna True si no hay concesiones ni documentos, False en caso contrario.
-        """
-        # Verificar si hay concesiones
-        concesiones = self.obtener_concesiones_no_finalizadas_con_emisor()
-        if concesiones:
-            return False  # Hay concesiones, la base de datos no está vacía
-
-        # Si no hay concesiones, verificar si hay documentos en la tabla de documentos
-        cursor = self.connection.cursor()
-        cursor.execute("SELECT COUNT(*) FROM documentos")
-        document_count = cursor.fetchone()[0]
-
-        return document_count == 0  # Retorna True si no hay documentos, False si hay al menos uno
-
     def __del__(self):
         self.conn.close()

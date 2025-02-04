@@ -1,10 +1,11 @@
+#Ignora los archivos de cache generados por el compilador de python
 ** .pyc
 ** .pyo
 **/__pycache__/
 
+#Ignora la base de datos generada
 concesiones.db
 
+# Ignora las carpetas temporales
 logs/
-
 .DS_Store
-.logs
