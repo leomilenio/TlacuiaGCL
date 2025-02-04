@@ -9,3 +9,4 @@ concesiones.db
 # Ignora las carpetas temporales
 logs/
 .DS_Store
+d

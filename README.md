@@ -6,6 +6,13 @@
 
 Tlacuia GCL, del nahuatl *tomar prestado*, es un pequeña aplicacion de escritorio desarrollada en Python con PyQt5 y SQLite para poder facilitar la gestion de concesiones en librerias de tamaño mediano y pequeño al centralizarlo en este. Uno de los principales objetivos de Tlacuia es ayudar a los libreros con alertas de vencimiento de sus concesiones.
 
+## Apoya mi trabajo
+
+Soy un estudiante en Mexico que tambien trabaja y hace esto durante su tiempo libre, asi que si te gusto este proyecto y tienes la oportunidad de apoyarme, puedes invitarme un cafe!!!
+
+
+[![Buy Me a Coffee](https://img.shields.io/badge/Buy%20Me%20a%20Coffee-ffdd00?style=for-the-badge&logo=buy-me-a-coffee)](https://buymeacoffee.com/leomilenio)
+
 ## Screenshots
 
 ### Pantalla principal
