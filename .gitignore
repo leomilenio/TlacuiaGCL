@@ -4,5 +4,7 @@
 
 concesiones.db
 
+logs/
+
 .DS_Store
 .logs
