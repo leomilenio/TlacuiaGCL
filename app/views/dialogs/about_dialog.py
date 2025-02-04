@@ -1,7 +1,7 @@
 import sys
 import os
-from PyQt5.QtWidgets import (QApplication, QMainWindow, QDialog, QVBoxLayout,
-                             QLabel, QPushButton, QAction, QMessageBox, QTextEdit)
+from PyQt5.QtWidgets import (QDialog, QVBoxLayout,
+                             QLabel, QPushButton, QMessageBox, QTextEdit)
 from PyQt5.QtGui import QIcon, QPixmap
 from PyQt5.QtCore import Qt, QUrl
 
@@ -27,6 +27,7 @@ class AboutDialog(QDialog):
 
         title = QLabel("<h1> Tlacuia GCL </h1>")
         title.setAlignment(Qt.AlignCenter)
+        title.mouseDoubleClickEvent = self.show_easter_egg
 
         versionValue = QLabel(f"Version - {version}")
         versionValue.setAlignment(Qt.AlignCenter)
@@ -82,3 +83,6 @@ class AboutDialog(QDialog):
 
         license_dialog.setLayout(layout)
         license_dialog.exec()
+
+    def show_easter_egg(self, event):
+        QMessageBox.information(self, "Un mensaje!", "Te quiero mucho Armando!!")

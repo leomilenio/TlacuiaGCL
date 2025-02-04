@@ -12,6 +12,7 @@ from app.views.dialogs.about_dialog import AboutDialog
 from app.views.tools.table_extractor import PdfTableExtractor
 from app.views.tools.congruence_analisis import AnalizadorCongruencias
 from datetime import datetime
+import shutil
 
 
 class MainWindow(QMainWindow):
@@ -29,6 +30,14 @@ class MainWindow(QMainWindow):
             # Crear la barra de menú
         menubar = self.menuBar()
         
+        # Menu Archivo
+        archive_menu = menubar.addMenu('Archivo')
+
+        exportDB_action = QAction('Exportar Base de Datos', self)
+        exportDB_action.triggered.connect(self.mostrar_ExportarBaseDatos)
+
+        archive_menu.addAction(exportDB_action)
+
         # Menú "Herramientas"
         tools_menu = menubar.addMenu('Herramientas')
 
@@ -40,7 +49,7 @@ class MainWindow(QMainWindow):
         
         tools_menu.addAction(tableExtractor_action)
         tools_menu.addAction(congruenceAnalisisTool_action)
-        
+
         # Menú "Ayuda"
         help_menu = menubar.addMenu('Ayuda')
         about_action = QAction('Acerca de', self)
@@ -639,6 +648,33 @@ class MainWindow(QMainWindow):
                 except Exception as e:
                     print(f"No se pudo eliminar el archivo temporal {file}: {str(e)}")
 
+    def mostrar_ExportarBaseDatos(self):
+            # Obtener la ruta absoluta de la base de datos (en la raíz del proyecto)
+            db_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', 'concesiones.db'))
+
+            # Verificar si la base de datos existe
+            if not os.path.exists(db_path):
+                QMessageBox.critical(self, "Error", f"La base de datos no existe en la ruta:\n{db_path}")
+                return
+
+            # Abrir el cuadro de diálogo para guardar el archivo
+            options = QFileDialog.Options()
+            options |= QFileDialog.DontUseNativeDialog  # Opcional: Desactiva el diálogo nativo (puedes omitirlo si prefieres el nativo)
+            file_name, _ = QFileDialog.getSaveFileName(self, "Exportar Base de Datos", "", "Archivos de Base de Datos (*.db);;Todos los archivos (*)", options=options)
+
+            if file_name:
+                try:
+                    # Asegurarse de que el archivo tenga la extensión .db
+                    if not file_name.endswith('.db'):
+                        file_name += '.db'
+
+                    # Copiar la base de datos a la nueva ubicación
+                    shutil.copy(db_path, file_name)
+                    QMessageBox.information(self, "Éxito", f"Base de datos exportada correctamente a:\n{file_name}")
+                except Exception as e:
+                    QMessageBox.critical(self, "Error", f"No se pudo exportar la base de datos:\n{str(e)}")
+
+                    
     def mostrar_Analizador_Congruencia(self):
         dialog = AnalizadorCongruencias()
         dialog.exec()
