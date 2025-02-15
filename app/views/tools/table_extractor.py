@@ -2,13 +2,19 @@ import os
 import re
 import sys
 import camelot
+import pdfplumber
+import ollama
+import json
+import requests
 import pandas as pd
+
 from PyQt5.QtWidgets import (QVBoxLayout, QHBoxLayout, QPushButton, QFileDialog,
                              QTableWidget, QTableWidgetItem, QSpinBox, QListWidget, QLabel,
                              QMessageBox, QLineEdit, QComboBox, QListWidgetItem, QDialog, QInputDialog,
-                             QApplication)
+                             QTextEdit, QProgressDialog)
 from PyQt5.QtCore import Qt
 from app.models.database import ConcesionesDB
+
 
 class PdfTableExtractor(QDialog):
     def __init__(self):
@@ -18,6 +24,7 @@ class PdfTableExtractor(QDialog):
         self.current_page = None  # Página actual seleccionada
         self.temp_csv_path = "temp_combined_table.csv"  # Ruta del archivo CSV temporal
         self.filters = {}  # Diccionario para guardar los filtros por tabla
+        self.is_load_pdf_enabled = True 
         self.db = ConcesionesDB()
         self.initUI()
 
@@ -30,9 +37,15 @@ class PdfTableExtractor(QDialog):
         # Controles izquierdos (Filtrado)
         control_layout = QVBoxLayout()
         
+        # Botón para elegir el método de extracción
+        self.btn_choose_method = QPushButton('Ocupar otro método de extracción (Experimental)', self)
+        self.btn_choose_method.clicked.connect(self.choose_extraction_method)
+        control_layout.addWidget(self.btn_choose_method)
+
         # Botón para cargar PDF
         self.btn_load = QPushButton('Cargar PDF', self)
         self.btn_load.clicked.connect(self.load_pdf_options)
+        self.update_load_pdf_button_state()  # Actualizar estado inicial del botón
         control_layout.addWidget(self.btn_load)
         
         # Sección de filtros
@@ -141,6 +154,19 @@ class PdfTableExtractor(QDialog):
             except Exception as e:
                 QMessageBox.critical(self, "Error", f"Error al procesar PDF: {str(e)}")
 
+    def set_load_pdf_enabled(self, enabled):
+        """
+        Habilita o deshabilita el botón "Cargar PDF".
+        :param enabled: Booleano que indica si el botón debe estar habilitado.
+        """
+        self.is_load_pdf_enabled = enabled
+        self.update_load_pdf_button_state()
+
+    def update_load_pdf_button_state(self):
+        """
+        Actualiza el estado del botón "Cargar PDF" según el valor de is_load_pdf_enabled.
+        """
+        self.btn_load.setEnabled(self.is_load_pdf_enabled)
 
     def update_table_selector(self):
         selected_page = int(self.page_selector.currentText().split(" ")[1])
@@ -538,3 +564,402 @@ class PdfTableExtractor(QDialog):
                     print(f"Archivo temporal eliminado: {file}")
                 except Exception as e:
                     print(f"No se pudo eliminar el archivo temporal {file}: {str(e)}")
+
+    # Implementacion de prueba, analisis mediante LLM
+    def load_pdf_for_llm(self):
+        """Muestra un cuadro de diálogo para elegir entre cargar PDF de una concesión o desde archivos del usuario."""
+        options = ["Cargar PDF de una concesión", "Cargar PDF desde archivos del usuario"]
+        choice, ok = QInputDialog.getItem(self, "Cargar PDF", "Seleccione una opción:", options, 0, False)
+        if ok and choice:
+            if choice == "Cargar PDF de una concesión":
+                self.load_pdf_from_concesion_for_llm()
+            elif choice == "Cargar PDF desde archivos del usuario":
+                self.load_pdf_from_file_for_llm()
+
+    def load_pdf_from_file_for_llm(self):
+        """Carga un PDF desde archivos del usuario para procesarlo con LLM."""
+        file_path, _ = QFileDialog.getOpenFileName(self, "Seleccionar PDF", "", "PDF Files (*.pdf)")
+        if file_path:
+            self.process_pdf_with_llm(file_path)
+
+    def choose_extraction_method(self):
+        """Permite al usuario elegir entre Camelot y LLM, mostrando una advertencia previa."""
+        # Mostrar advertencia sobre la naturaleza experimental de la utilidad
+        advertencia = QMessageBox.warning(
+            self,
+            "Advertencia",
+            "Esta utilidad sigue en etapa experimental, verifique el manual para "
+            "verificar que su ordenador cumple con los requisitos mínimos. "
+            "Considere que el LLM (MISTRAL) podría no realizar la tarea correctamente.",
+            QMessageBox.Ok | QMessageBox.Cancel
+        )
+        
+        # Si el usuario cancela, detener el proceso
+        if advertencia == QMessageBox.Cancel:
+            return
+
+        # Continuar con el flujo normal si el usuario acepta
+        options = ["Camelot", "LLM: Mistral"]
+        choice, ok = QInputDialog.getItem(
+            self, 
+            "Elegir Método de Extracción", 
+            "Seleccione un método:", 
+            options, 
+            0, 
+            False
+        )
+        
+        if ok and choice:
+            self.extraction_method = choice
+            if choice == "Camelot":
+                self.load_pdf_options()  # Flujo actual
+            elif choice == "LLM: Mistral":
+                self.load_pdf_for_llm()  # Nuevo flujo para LLM
+
+    def extract_text_from_pdf(file_path):
+        with pdfplumber.open(file_path) as pdf:
+            text = ""
+            for page in pdf.pages:
+                text += page.extract_text()
+        return text
+
+
+    def preprocess_for_llm(self, text):
+        print("Texto en preprocesamiento:")
+        print(text)
+
+        # Dividir el texto en bloques separados por líneas vacías
+        blocks = [block.strip() for block in text.split("\n\n") if block.strip()]
+
+        # Identificar el bloque que contiene la tabla de productos
+        table_block = None
+        for block in blocks:
+            if "Cant Cve.Prod.SA|Cve.Producto|Cve.Prod.Cliente|Título" in block:
+                table_block = block
+                break
+
+        if not table_block:
+            raise ValueError("No se encontró la tabla de productos en el texto.")
+
+        # Procesar cada fila de la tabla
+        product_rows = []
+        lines = table_block.split("\n")
+        for line in lines[1:]:  # Ignorar la primera línea (encabezado)
+            if not line.strip():  # Detenerse si encontramos una línea vacía
+                break
+
+            # Dividir la línea en columnas usando el separador "|"
+            columns = [col.strip() for col in line.split("|") if col.strip()]
+
+            # Extraer los campos relevantes
+            cantidad = re.findall(r"\d+", columns[0])[0]  # Extraer solo números de la cantidad
+            isbn = columns[1]
+            titulo = columns[3]
+            imp_neto = columns[-1].replace(",", "")  # Eliminar comas
+
+            # Guardar en un diccionario
+            product_rows.append({
+                "cantidad": int(cantidad),
+                "isbn": isbn,
+                "titulo": titulo,
+                "importe_neto": float(imp_neto)
+            })
+
+        return product_rows
+
+    def process_pdf_with_llm(self, file_path):
+        try:
+            
+            progress_dialog = QProgressDialog("Mistral está procesando el documento ingresado...", "Cancelar", 0, 0, self)
+            progress_dialog.setWindowTitle("Procesando...")
+            progress_dialog.setWindowModality(Qt.WindowModal)  # Bloquear interacción con otras ventanas
+            progress_dialog.setMinimumDuration(0)  # Mostrar inmediatamente
+            progress_dialog.show()
+
+            # Paso 1: Extraer tablas con Camelot
+            tables = camelot.read_pdf(file_path, flavor='stream', pages='all')
+            combined_text = ""
+            for table in tables:
+                df = table.df
+                # Convertir DataFrame a texto estructurado
+                combined_text += df.to_csv(sep="|", index=False)
+                print(combined_text)
+            
+            # Paso 2: Preprocesar texto para LLM
+            processed_text = self.preprocess_for_llm(combined_text)
+            print("Texto preprocesado:")
+            print(processed_text)
+            text_chunks = self.split_text_into_chunks(processed_text)
+            
+            extracted_data = []
+            raw_response = []
+
+            try:
+                for chunk in text_chunks:
+                    # Paso 3: Analizar con LLM
+                    response = ollama.chat(
+                        model="mistral:latest",
+                        messages=[
+                            {
+                                "role": "user",
+                                "content": (
+                                    "ANALIZA ESTA TABLA DE PRODUCTOS Y GENERA UN JSON CON EL SIGUIENTE FORMATO:\n"
+                                    "{\n"
+                                    "  \"Conceptos\": [\n"
+                                    "    {\n"
+                                    "      \"Cantidad\": int,\n"
+                                    "      \"ISBN\": \"###-###-###-####-#\",\n"
+                                    "      \"TituloLibro\": \"texto\",\n"
+                                    "      \"PrecioUnitario\": float,\n"
+                                    "      \"ImporteNeto\": float\n"
+                                    "    }\n"
+                                    "  ]\n"
+                                    "}\n\n"
+                                    "REGLAS ABSOLUTAS DE EXTRACCIÓN:\n"
+                                    "1. Validar ISBN (13 dígitos, formatear como ###-###-###-####-#).\n"
+                                    "2. Verificar que ImporteNeto = Cantidad * PrecioUnitario.\n"
+                                    "3. Si faltan datos, OMITIR la fila completamente.\n\n"
+                                    f"TEXTO A PROCESAR:\n{chunk}"
+                                )
+                            }
+                        ],
+                        options={
+                            "temperature": 0.0,  # Minimizar aleatoriedad
+                            "max_tokens": 4096,  # Limitar longitud máxima
+                            "stop": ["\n}"]      # Forzar finalización al cerrar JSON
+                        }
+                    )
+                    raw_response.append(response["message"]["content"])
+                    extracted_data.extend(self.parse_llm_response(response))
+            except requests.exceptions.RequestException as e:
+                QMessageBox.critical(self, "Error", f"Error al comunicarse con el modelo LLM: {str(e)}")
+                return
+            raw_response = "\n".join(raw_response)
+
+            progress_dialog.cancel()
+
+            self.preview_llm_data(extracted_data, raw_response, file_path)  # Pasar ambos argumentos
+            
+        except Exception as e:
+            if 'progress_dialog' in locals():
+                progress_dialog.cancel()
+            QMessageBox.critical(self, "Error", f"Error al procesar el PDF con LLM: {str(e)}")
+
+    def validate_extracted_data(self, data):
+        validated_data = []
+        for item in data:
+            # Validar ISBN
+            isbn = item.get("ISBN", "")
+            if not re.match(r"^\d{3}-\d-\d{2}-\d{6}-\d$", isbn):
+                continue
+            
+            # Validar relación matemática
+            cantidad = float(item.get("Cantidad", 0))
+            precio_unitario = float(item.get("PrecioUnitario", 0))
+            importe_neto = float(item.get("ImporteNeto", 0))
+            if abs(importe_neto - (cantidad * precio_unitario)) > 0.01:
+                continue
+            
+            validated_data.append(item)
+        
+        return validated_data
+
+    def load_pdf_from_concesion_for_llm(self):
+        """Carga un PDF desde una concesión existente para procesarlo con LLM."""
+        concesiones = self.db.obtener_concesiones_no_finalizadas_con_emisor()
+        if not concesiones:
+            QMessageBox.warning(self, "Advertencia", "No hay concesiones disponibles con documentos vinculados.")
+            return
+
+        dialog = QDialog(self)
+        dialog.setWindowTitle("Seleccionar Concesión")
+        layout = QVBoxLayout()
+        list_widget = QListWidget()
+        for concesion in concesiones:
+            item = QListWidgetItem(f"{concesion['nombre_emisor']} - Folio: {concesion['folio']}")
+            item.setData(Qt.UserRole, concesion['id'])  # Almacenar el ID de la concesión
+            list_widget.addItem(item)
+        layout.addWidget(list_widget)
+        btn_ok = QPushButton("Aceptar")
+        btn_ok.clicked.connect(dialog.accept)
+        layout.addWidget(btn_ok)
+        dialog.setLayout(layout)
+
+        if dialog.exec_():
+            selected_item = list_widget.currentItem()
+            if selected_item:
+                concesion_id = selected_item.data(Qt.UserRole)
+                documentos = self.db.obtener_documentos(concesion_id)
+                if not documentos:
+                    QMessageBox.warning(self, "Advertencia", "La concesión seleccionada no tiene documentos asociados.")
+                    return
+
+                doc_dialog = QDialog(self)
+                doc_dialog.setWindowTitle("Seleccionar Documento")
+                doc_layout = QVBoxLayout()
+                doc_list_widget = QListWidget()
+                for doc in documentos:
+                    item = QListWidgetItem(f"{doc[2]} ({doc[3]})")
+                    item.setData(Qt.UserRole, doc[0])  # Almacenar el ID del documento
+                    doc_list_widget.addItem(item)
+                doc_layout.addWidget(doc_list_widget)
+                btn_doc_ok = QPushButton("Aceptar")
+                btn_doc_ok.clicked.connect(doc_dialog.accept)
+                doc_layout.addWidget(btn_doc_ok)
+                doc_dialog.setLayout(doc_layout)
+
+                if doc_dialog.exec_():
+                    selected_doc = doc_list_widget.currentItem()
+                    if selected_doc:
+                        doc_id = selected_doc.data(Qt.UserRole)
+                        documento = self.db.obtener_documento_por_id(doc_id)
+                        if documento:
+                            temp_pdf_path = f"temp_{documento['nombre']}.pdf"
+                            with open(temp_pdf_path, 'wb') as f:
+                                f.write(documento['contenido'])
+                            self.process_pdf_with_llm(temp_pdf_path)
+
+
+    def preview_llm_data(self, extracted_data, raw_response, file_path):
+        """Muestra una previsualización de los datos extraídos por el LLM."""
+        preview_dialog = QDialog(self)
+        preview_dialog.setWindowTitle("Previsualización de Datos Extraídos")
+        layout = QVBoxLayout()
+        
+        # Mostrar datos procesados
+        processed_label = QLabel("Datos Procesados:")
+        layout.addWidget(processed_label)
+        table_widget = QTableWidget()
+        
+        if isinstance(extracted_data, list) and len(extracted_data) > 0:
+            headers = ["Cantidad", "ISBN", "TituloLibro", "PrecioUnitario", "ImporteNeto"]
+            table_widget.setRowCount(len(extracted_data))
+            table_widget.setColumnCount(len(headers))
+            table_widget.setHorizontalHeaderLabels(headers)
+            
+            for row_idx, row_data in enumerate(extracted_data):
+                for col_idx, key in enumerate(headers):
+                    item = QTableWidgetItem(str(row_data.get(key, "")))
+                    table_widget.setItem(row_idx, col_idx, item)
+        else:
+            label = QLabel("No se encontraron datos válidos para previsualizar.")
+            layout.addWidget(label)
+        
+        layout.addWidget(table_widget)
+        
+        # Mostrar respuesta sin procesar
+        raw_label = QLabel("Respuesta Sin Procesar del LLM:")
+        layout.addWidget(raw_label)
+        raw_text_edit = QTextEdit()
+        raw_text_edit.setPlainText(raw_response)
+        raw_text_edit.setReadOnly(True)
+        layout.addWidget(raw_text_edit)
+
+        # Botones de acción
+        btn_layout = QHBoxLayout()
+
+        btn_save = QPushButton("Guardar Respuesta")
+        btn_save.clicked.connect(lambda: self.save_results(raw_response, preview_dialog))
+
+        btn_discard = QPushButton("Descartar Respuesta")
+        btn_discard.clicked.connect(preview_dialog.reject)
+
+        btn_retry = QPushButton("Volver a Procesar")
+        btn_retry.clicked.connect(lambda: self.retry_processing(file_path, preview_dialog))
+
+        btn_layout.addWidget(btn_save)
+        btn_layout.addWidget(btn_discard)
+        btn_layout.addWidget(btn_retry)
+
+        layout.addLayout(btn_layout)
+        preview_dialog.setLayout(layout)
+        preview_dialog.exec_()
+
+    def retry_processing(self, file_path, dialog):
+        """
+        Vuelve a procesar el análisis del PDF con LLM.
+        :param file_path: Ruta del archivo PDF original.
+        :param dialog: Diálogo actual para cerrarlo antes de reiniciar el proceso.
+        """
+        dialog.reject()  # Cerrar el diálogo actual
+        self.process_pdf_with_llm(file_path)  # Volver a procesar el PDF
+
+
+    def parse_llm_response(self, response):
+        """
+        Analiza la respuesta del modelo LLM y extrae los datos relevantes.
+        """
+        try:
+            # Verificar si la respuesta contiene datos válidos
+            if not response or "message" not in response or "content" not in response["message"]:
+                raise ValueError("La respuesta del modelo está vacía o no tiene el formato esperado.")
+            
+            # Obtener el contenido de la respuesta
+            content = response["message"]["content"].strip()
+            
+            # Verificar si el contenido está vacío
+            if not content:
+                raise ValueError("La respuesta del modelo está vacía.")
+            
+            # Intentar analizar el contenido como JSON
+            try:
+                parsed_data = json.loads(content)
+            except json.JSONDecodeError as e:
+                raise ValueError(f"Error al analizar la respuesta JSON: {e}")
+            
+            # Validar que el JSON tenga la estructura esperada
+            if "Conceptos" not in parsed_data or not isinstance(parsed_data["Conceptos"], list):
+                raise ValueError("La respuesta del modelo no contiene la clave 'Conceptos' o no es una lista.")
+            
+            # Validar cada elemento en la lista de Conceptos
+            validated_data = self.validate_extracted_data(parsed_data["Conceptos"])
+            
+            return validated_data
+        
+        except Exception as e:
+            QMessageBox.critical(self, "Error", f"Error al analizar la respuesta del modelo: {str(e)}")
+            return []
+        
+    def split_text_into_chunks(self, text, max_length=2000):
+        """
+        Divide el texto en fragmentos más pequeños para evitar exceder el límite de tokens del modelo LLM.
+        :param text: Texto completo a dividir.
+        :param max_length: Longitud máxima de cada fragmento (en caracteres).
+        :return: Lista de fragmentos de texto.
+        """
+        words = text.split()
+        chunks = []
+        current_chunk = []
+
+        for word in words:
+            # Verificar si agregar la siguiente palabra excede el límite
+            if sum(len(w) + 1 for w in current_chunk) + len(word) <= max_length:
+                current_chunk.append(word)
+            else:
+                # Guardar el fragmento actual y comenzar uno nuevo
+                chunks.append(" ".join(current_chunk))
+                current_chunk = [word]
+
+        # Agregar el último fragmento
+        if current_chunk:
+            chunks.append(" ".join(current_chunk))
+
+        return chunks
+    
+    def save_results(self, raw_response, dialog):
+        """
+        Guarda la respuesta del LLM en un archivo .txt.
+        :param raw_response: Respuesta sin procesar del LLM.
+        :param dialog: Diálogo actual para cerrarlo después de guardar.
+        """
+        file_path, _ = QFileDialog.getSaveFileName(
+            self, "Guardar Respuesta", "", "Text Files (*.txt)"
+        )
+        if file_path:
+            try:
+                with open(file_path, "w", encoding="utf-8") as f:
+                    f.write(raw_response)
+                QMessageBox.information(self, "Éxito", "Respuesta guardada correctamente.")
+            except Exception as e:
+                QMessageBox.critical(self, "Error", f"No se pudo guardar la respuesta: {str(e)}")
+        dialog.accept()

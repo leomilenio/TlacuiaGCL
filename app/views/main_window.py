@@ -11,6 +11,7 @@ from app.views.dialogs.concession_dialog import (EditConcesionDialog, ConcesionI
 from app.views.dialogs.about_dialog import AboutDialog
 from app.views.tools.table_extractor import PdfTableExtractor
 from app.views.tools.congruence_analisis import AnalizadorCongruencias
+from app.views.tools.gslibCut_analisis import AnalizadorCorteGeslib
 from datetime import datetime
 import shutil
 
@@ -47,8 +48,12 @@ class MainWindow(QMainWindow):
         congruenceAnalisisTool_action = QAction('Analizador de congruencia', self)
         congruenceAnalisisTool_action.triggered.connect(self.mostrar_Analizador_Congruencia)
         
+        GESLibCutAnalisisTool_action = QAction('Analizador de cortes de GESLib', self)
+        GESLibCutAnalisisTool_action.triggered.connect(self.mostrar_CongruenciaDeCorteGESLib)
+
         tools_menu.addAction(tableExtractor_action)
         tools_menu.addAction(congruenceAnalisisTool_action)
+        tools_menu.addAction(GESLibCutAnalisisTool_action)
 
         # Menú "Ayuda"
         help_menu = menubar.addMenu('Ayuda')
@@ -70,7 +75,7 @@ class MainWindow(QMainWindow):
         # Cabecera
         header = QWidget()
         header_layout = QHBoxLayout()
-        header_layout.addWidget(QLabel("Tlacuia - DB", styleSheet="font-weight: bold;"))
+        header_layout.addWidget(QLabel("Tlacuia - Concesiones", styleSheet="font-weight: bold;"))
         header_layout.addStretch(50)
         
         currentDate = QDate.currentDate().toString("dd/MM/yyyy")
@@ -527,8 +532,17 @@ class MainWindow(QMainWindow):
         exportar_action = menu.addAction("Exportar")
         eliminar_action = menu.addAction("Eliminar")
         
-        # Obtener ID del documento
+        # Obtener ID y tipo del documento
         doc_id = item.data(Qt.UserRole)
+        documento = self.db.obtener_documento_por_id(doc_id)
+        
+        if not documento:
+            QMessageBox.warning(self, "Error", "Documento no encontrado")
+            return
+        
+        # Habilitar o deshabilitar la acción "Extraer información" según el tipo de documento
+        if documento['tipo'].lower() != "pdf":
+            extraer_action.setEnabled(False)  # Deshabilitar si no es un PDF
         
         # Conectar acciones a métodos
         extraer_action.triggered.connect(lambda: self.abrir_extractor_con_documento(doc_id))
@@ -609,6 +623,7 @@ class MainWindow(QMainWindow):
         print("Creando instancia de PdfTableExtractor...")
         # Crear y mostrar la ventana PdfTableExtractor
         extractor = PdfTableExtractor()
+        extractor.set_load_pdf_enabled(False) # Se deshabilita boton de cargar PDF para este PDFTableExtractor
         print("Instancia de PdfTableExtractor creada.")
 
         # Cargar el archivo en PdfTableExtractor
@@ -677,4 +692,8 @@ class MainWindow(QMainWindow):
                     
     def mostrar_Analizador_Congruencia(self):
         dialog = AnalizadorCongruencias()
+        dialog.exec()
+
+    def mostrar_CongruenciaDeCorteGESLib(self):
+        dialog = AnalizadorCorteGeslib()
         dialog.exec()

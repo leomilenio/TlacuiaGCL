@@ -5,10 +5,7 @@ from PyQt5.QtWidgets import (QDialog, QVBoxLayout, QHBoxLayout,
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QColor
 from app.models.database import ConcesionesDB
-from app.models.json_extract import extract_version_from_file
-from reportlab.lib.pagesizes import letter
-from reportlab.pdfgen import canvas
-from datetime import datetime
+from app.utils.report_generator import Reporte
 import pandas as pd
 import requests
 import os
@@ -210,16 +207,19 @@ class AnalizadorCongruencias(QDialog):
             self.result_table.setItem(row, 3, estado_item)
 
     def generar_pdf(self, resultados):
-        """Genera un PDF con los resultados del análisis."""
+        """
+        Genera un PDF con los resultados del análisis utilizando la clase Reporte.
+        """
+        # Preguntar si se desea buscar títulos para los ISBN
         reply = QMessageBox.question(
-        self,
-        "Buscar Títulos",
-        "¿Desea intentar buscar los títulos correspondientes a los ISBN?",
-        QMessageBox.Yes | QMessageBox.No,
-        QMessageBox.No
+            self,
+            "Buscar Títulos",
+            "¿Desea intentar buscar los títulos correspondientes a los ISBN?",
+            QMessageBox.Yes | QMessageBox.No,
+            QMessageBox.No
         )
 
-            # Buscar títulos si el usuario selecciona "Sí"
+        # Buscar títulos si el usuario selecciona "Sí"
         if reply == QMessageBox.Yes:
             for resultado in resultados:
                 isbn = resultado["ISBN"]
@@ -229,99 +229,54 @@ class AnalizadorCongruencias(QDialog):
             for resultado in resultados:
                 resultado["Titulo"] = ""
 
-            
+        # Abrir cuadro de diálogo para guardar el archivo PDF
         filename, _ = QFileDialog.getSaveFileName(
-            self, "Guardar PDF", "", "PDF (*.pdf)")
-
+            self, "Guardar PDF", "", "PDF (*.pdf)"
+        )
         if not filename:
             return
 
-        base_path = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
-        file_path = os.path.join(base_path, 'models', 'dev_info.json')
+        # Crear una instancia de Reporte
+        reporte = Reporte(app_name="Tlacuia GCL", orientation="vertical")
 
-        metadata_version = extract_version_from_file(file_path)
-        version = metadata_version.get('version', 'desconocida')
+        # Preparar los elementos del cuerpo del documento
+        elementos = []
 
-        c = canvas.Canvas(filename, pagesize=letter)
-        width, height = letter
-        y = height - 50
-
-        # Encabezado
-        y = height - 25
-        c.setFont("Helvetica-Bold", 12)
-        c.drawString(50, y, f"Tlacuia GCL {version}")
-        y -= 15
-        
-        c.setFont("Helvetica-Bold", 14)
-        c.drawString(50, y, "Reporte de Análisis de Congruencias")
-        y -= 15
-
-        c.setFont("Helvetica", 10)
-        c.drawString(50, y, f"Fecha: {datetime.now().strftime('%d/%m/%Y %H:%M:%S')}")
-        y -= 30
-
-        # Columnas
-        c.setFont("Helvetica-Bold", 10)
-        c.drawString(50, y, "ISBN")
-        c.drawString(150, y, "T1")
-        c.drawString(250, y, "T2")
-        c.drawString(350, y, "Estado")
-        c.drawString(450, y, "Título")
-        y -= 20
-
-        # Datos
-        c.setFont("Helvetica", 10)
-        for resultado in resultados:
-            c.drawString(50, y, resultado["ISBN"])
-            c.drawString(150, y, resultado["Tabla 1"])
-            c.drawString(250, y, resultado["Tabla 2"])
-            c.drawString(350, y, resultado["Estado"])
-
-            # Ajustar el título para que ocupe hasta 2 líneas
-            titulo = resultado["Titulo"]
-            if titulo:
-                if len(titulo) > 30:  # Dividir el título si es demasiado largo
-                    line1 = titulo[:30]
-                    line2 = titulo[30:]
-                    c.drawString(450, y, line1)
-                    y -= 10
-                    c.drawString(450, y, line2)
-                else:
-                    c.drawString(450, y, titulo)
-            else:
-                c.drawString(450, y, "")  # Dejar celda vacía si no hay título
-
-
-            y -= 20
-
-            if y < 50:
-                c.showPage()
-                y = height - 50
-                c.setFont("Helvetica-Bold", 10)
-                c.drawString(50, y, "ISBN")
-                c.drawString(150, y, "T1")
-                c.drawString(250, y, "T2")
-                c.drawString(350, y, "Estado")
-                c.drawString(450, y, "Título")
-                y -= 20
-                c.setFont("Helvetica", 10)
-
-        # Advertencia sobre el uso de la API de Google Books
-        c.setFont("Helvetica-Oblique", 8)
+        # 1. Encabezado personalizado
         advertencia = (
             "* Nota: Este reporte utiliza la API de Google Books y Open Library para identificar "
             "los títulos correspondientes a los ISBN. Los resultados pueden contener "
             "errores debido a limitaciones en la precisión de la API."
         )
-        advertencia_lines = self.dividir_texto_en_lineas(advertencia, 100)  # Dividir en líneas de máximo 100 caracteres
-        y -= 20
-        for line in advertencia_lines:
-            c.drawCentredString(width / 2, y, line)  # Centrar el texto horizontalmente
-            y -= 10
+        elementos.append({"tipo": "texto", "contenido": advertencia})
 
-        c.save()
+        # 2. Tabla de resultados
+        columnas = ["ISBN", "Tabla 1", "Tabla 2", "Estado", "Título"]
+        datos_tabla = [
+            {
+                "ISBN": resultado["ISBN"],
+                "Tabla 1": resultado["Tabla 1"],
+                "Tabla 2": resultado["Tabla 2"],
+                "Estado": resultado["Estado"],
+                "Título": resultado["Titulo"],
+            }
+            for resultado in resultados
+        ]
+        elementos.append({"tipo": "tabla", "datos": datos_tabla, "columnas": columnas})
 
-        QMessageBox.information(self, "Éxito", "PDF generado correctamente.")
+        # Generar el PDF usando la clase Reporte
+        try:
+            reporte.generar_pdf(
+                filename=filename,
+                titulo_reporte="Reporte de Análisis de Congruencias",
+                elementos=elementos,
+                advertencias=advertencia,
+                save_dialog=True
+            )
+            QMessageBox.information(self, "Éxito", "PDF generado correctamente.")
+        except Exception as e:
+            QMessageBox.critical(self, "Error", f"No se pudo generar el PDF: {str(e)}")
+
 
     def dividir_texto_en_lineas(self, texto, max_chars):
         """Divide un texto en líneas de longitud máxima especificada."""

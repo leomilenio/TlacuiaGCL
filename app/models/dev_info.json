@@ -1,8 +1,10 @@
 {
     "Tlacuia GCL":
     {
-        "version" : "0.3.4",
+        "version" : "0.3.7",
         "contact" : "GitHub: @leomilenio",
-        "licence" : "MIT"
+        "licence" : "MIT",
+        "download_url" : "",
+        "release_notes" : "Se hacen correciones en la vista principal, se implemnta la clase Reporte, se añade una ventana de inicio que permite iniciar el Gestor de Concesiones o el Asistente de Bodegas y de manera experimental el uso de un LLM (Mistral) para obtener los datos de una factura."
     }
 }

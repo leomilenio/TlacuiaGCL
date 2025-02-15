@@ -10,7 +10,6 @@ Tlacuia GCL, del nahuatl *tomar prestado*, es un pequeña aplicacion de escritor
 
 Soy un estudiante en Mexico que tambien trabaja y hace esto durante su tiempo libre, asi que si te gusto este proyecto y tienes la oportunidad de apoyarme, puedes invitarme un cafe!!!
 
-
 [![Buy Me a Coffee](https://img.shields.io/badge/Buy%20Me%20a%20Coffee-ffdd00?style=for-the-badge&logo=buy-me-a-coffee)](https://buymeacoffee.com/leomilenio)
 
 ## Screenshots

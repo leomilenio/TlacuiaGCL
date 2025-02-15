@@ -1,0 +1,142 @@
+\documentclass[12pt, letterpaper]{article}
+
+\usepackage[utf8]{inputenc}
+\usepackage[spanish, es-tabla]{babel}
+\usepackage{geometry}       % Configuración de márgenes
+\usepackage{fancyhdr}       % Encabezados y pies de página personalizados
+\usepackage{tocloft}        % Personalización de la tabla de contenidos
+\usepackage{lastpage}       % Referencia a la última página
+\usepackage{hyperref}
+\usepackage{graphicx}
+
+% Configuración de márgenes
+\geometry{
+    left=1.5cm,
+    right=1.5cm,
+    top=1.5cm,
+    bottom=1.5cm,
+    headheight=14.5pt
+}
+
+\graphicspath{{media/}}
+
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{Manual de Usuario - Tlacuia GCL}
+\fancyfoot[C]{Página \thepage\ de \pageref{LastPage}}
+\renewcommand{\headrulewidth}{0.4pt}
+\renewcommand{\footrulewidth}{0.4pt}
+
+% Información de la portada
+\title{
+    \vspace*{3cm}
+    \textbf{Manual de usuario}\\[1cm]
+    \Large\textbf{Tlacuia: Gestor de Concesiones para Librerias}\\[0.5cm]
+    \large Versión: 0.3.7
+}
+\author{
+    Autor: Leonardo J.\\
+    No. de Revisión: 0
+}
+\date{
+    14 de Febrero del 2024
+}
+
+
+\begin{document}
+
+% Portada
+\maketitle
+\thispagestyle{empty} % Elimina el número de página en la portada
+\newpage
+
+% Tabla de contenidos
+\tableofcontents
+\newpage
+
+% Contenido del manual
+\section{Introducción}
+
+\begin{center}
+    \includegraphics[width = 5cm]{TlacuiaLogo.png}
+\end{center}
+
+¡Hola personita! Se bienvenido al manual de usuario de Tlacuia Gestor de Concesiones para Librerías, o Tlacuia GCL. Esta es una
+aplicación de escritorio desarrollada en Python y diseñada especificamente para el manejo local de datos en librerias mexicanas.  
+
+Este documento te guiara a travez de las funciones basicas y avanzadas de la aplicación, para ayudarte asi a sacarle el mayor 
+provecho. En esta version, 0.3.7, despues de mucho trabajo en casi dos semanas y una gran cantidad de modificaciones libero por 
+fin la primera de dos herramientas planeadas, este es el Gestor de Concesiones. Este nace siguiendo las especificaciones y 
+necesidades de una librería con personitas que quiero y aprecio mucho, Somos Voces en la Zona Rosa de Ciudad de Mexico, 
+espero y puedan tener la oportunidad de visitarla algun dia.  
+
+El nombre Tlacuia, proviene del nahuatl y significa “tomar prestado”, esto debido a la naturaleza que suele tener una concesion 
+dentro de los sistemas de librerias, reflejando uno de los propositos de esta aplicación. El diseño de Tlacuia busca centralizar 
+todo lo relacionado con los documentos de una concesión de librería dentro del Gestor de Concesiones, ayudando al librero o 
+administrador atareado a revisar la congruencia de datos entre facturas y otros documentos, como los reportes generados por 
+sistemas comunes (por ejemplo, GESLIB). Ademas esta el Asistente de Bodega, esta es una herramienta diseñada facilitar la compleja 
+gestión que es mantener un control preciso de libros o articulos para aquellos que emiten concesiones y necesitan registrar 
+continuamente el movimiento de sus elementos en distintos espacios físicos, que buscan relacionarlos a través de un documento 
+de concesión específico o simplemente poder saber con mayor facilidad el status de los elementos en sus bodegas.  \footnote{
+    Actualmente, la herramienta mencionada, Asistente de Bodega, se encuentra en desarrollo y no está integrada en la versión
+    0.3.7 de Tlacuia GCL. Se tiene previsto que esta funcionalidad esté disponible en la versión 0.4.x
+}
+
+
+\newpage
+\subsection{Requisitos del sistema}
+Tlacuia GCL es una aplicación completamente programada en Python, con una interfaz grafica de usuario Qt. Esta posee dos tipos de herramientas, 
+convencionales e impulsadas por modelos de lenguaje de gran tamaño de IA, es decir LLM. Ningun dato es procesado fuera de la computadora donde
+se esta ejecutando Tlacuia, por lo que según el uso, pueden ser necesarios algunos requisitos minimos para poder aprovecharlo. 
+
+Estos requisitos estan divididos según el tipo de usuario esperado y la arquitectura de su sistema.\footnote{
+    Para ARM, Tlacuia solo se compila para procesadores Apple Silicone M1 en adelante. 
+}
+
+\subsubsection{Equipos x86 64}
+\textbf{Requisitos minimos para usuarios que solo ocuparan las herramientas convencionales}
+\begin{itemize}
+    \item Procesador: Intel Core i3 (octava generacion o superior) o AMD Ryzen 3 (segunda generacion o superior)
+    \item 4 GB
+    \item 20 GB (SSD Recomendado)
+    \item GPU: Graficos integrados del procesador
+    \item SO: Windows 10 o Ubuntu 22.04
+\end{itemize}
+
+\textbf{Requisitos minimos para usuarios que ocuparan las herramienta convencionales e impulsadas por IA}
+\begin{itemize}
+    \item Procesador: : Intel Core i5 (decima generacion o superior) o AMD Ryzen 5 (tercera generacion o superior)
+    \item RAM: 16 GB
+    \item 50 GB (SSD NVMe Recomendado)
+    \item Graficos integrados del procesador o NVIDIA GTX 1660 (o superior) \footnote{
+        El modelo LLM utilizado es un destilado de Mistral con 7 mil millones de parametros, este puede ejecutarse sobre la CPU. 
+    }
+    \item SO: Windows 11 o Ubuntu 22.04
+\end{itemize}
+
+\textbf{Requisitos ideales para utilizar todas las herramientas integradas}
+\begin{itemize}
+    \item Intel Core i7 (onceava generacion o superior) o AMD Ryzen 7 (quinta generacion o superior)
+    \item 32 GB
+    \item 50 GB (SSD NVMe Recomendado)
+    \item GPU: Graficos: NVIDIA RTX 3060 (o superior)
+    \item SO: Windows 11 o Ubuntu 22.04
+\end{itemize}
+
+\textbf{Equipos ARM}
+Tlacuia solo es compatible con computadoras Apple Silicon, para usuarios que utilicen solo las herramientas convencionales cualquier procesador 
+M1 o superior debera funcionar perfectamente, para los usuarios que utilicen herramientas de IA se recomiendan procesadores M1 Pro, Max o superior. 
+
+\section{Instalación}
+Explica aquí los pasos necesarios para instalar la aplicación. Puedes incluir subsecciones si es necesario.
+
+\section{Uso de la aplicación}
+Aquí puedes describir las funcionalidades principales de la aplicación y cómo utilizarlas.
+
+\subsection{Interfaz de usuario}
+Explica cómo navegar por la interfaz de usuario y qué significan los diferentes elementos.
+
+\subsection{Funcionalidades clave}
+Detalla las funciones más importantes de la aplicación.
+
+\end{document}

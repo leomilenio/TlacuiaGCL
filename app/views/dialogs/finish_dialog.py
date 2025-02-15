@@ -1,8 +1,7 @@
 import os
 import sys
 from app.models.json_extract import extract_version_from_file
-from reportlab.pdfgen import canvas
-from reportlab.lib.pagesizes import letter
+from app.utils.report_generator import Reporte
 from PyQt5.QtWidgets import QDialog, QVBoxLayout, QTableWidget, QPushButton, QMessageBox, QFileDialog, QSpinBox, QTableWidgetItem 
 from datetime import datetime
 
@@ -48,99 +47,84 @@ class FinConcesionDialog(QDialog):
         layout.addWidget(btn_generar)
         self.setLayout(layout)
     
-    def generar_pdf(self):    
+    def generar_pdf(self):
+        """
+        Genera un PDF utilizando la clase Reporte.
+        """
+        # Obtener la ruta para guardar el archivo PDF
         filename, _ = QFileDialog.getSaveFileName(
-            self, "Guardar PDF", "", "PDF (*.pdf)")
-        
+            self, "Guardar PDF", "", "PDF (*.pdf)"
+        )
+
         if filename:
-            base_path = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
-            file_path = os.path.join(base_path, 'models', 'dev_info.json')
+            try:
+                # Crear una instancia de la clase Reporte
+                reporte = Reporte(app_name="Tlacuia GCL", margins=(50, 50, 50, 50), orientation="vertical")
 
-            metadata_version = extract_version_from_file(file_path)
-            version = metadata_version.get('version', 'desconocida')
+                # Datos para el encabezado y el cuerpo del reporte
+                titulo_reporte = "Reporte Final de Concesión"
+                elementos = []
 
-            fecha_actual = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
+                # Construir los datos de la tabla
+                columnas = ["Producto", "Disponible", "Vendido", "Devolver", "A Pagar"]
+                datos_tabla = []
+                total_pagar = 0
+                total_devolver = 0
 
-            c = canvas.Canvas(filename, pagesize=letter)
-            width, height = letter
-            
-            # Encabezado
-            y = height - 25
-            c.setFont("Helvetica-Bold", 12)
-            c.drawString(50, y, f"Tlacuia GCL {version}")
-            y -= 15
+                for row in range(self.tabla.rowCount()):
+                    prod = self.productos[row]
+                    spin = self.tabla.cellWidget(row, 2)
+                    vendido = spin.value()
 
-            c.setFont("Helvetica-Bold", 14)
-            c.drawString(50, y, "Reporte Final de Concesión")
-            y -= 15
-            
-            c.setFont("Helvetica-Bold", 10)
-            c.drawString(50, y, f"{fecha_actual}")
-            y -= 30
+                    # Cálculos
+                    devolver = prod['cantidad'] - vendido
+                    monto = vendido * prod['precio_neto']
 
-            # Columnas
-            c.setFont("Helvetica-Bold", 10)
-            c.drawString(25, y, "Producto")
-            c.drawString(225, y, "Disponible")
-            c.drawString(325, y, "Vendido")
-            c.drawString(425, y, "Devolver")  # Nueva columna
-            c.drawString(525, y, "A Pagar")
-            y -= 20
-            
-            # Datos
-            c.setFont("Helvetica", 10)
-            total_pagar = 0
-            total_devolver = 0
-            
-            for row in range(self.tabla.rowCount()):
-                prod = self.productos[row]
-                spin = self.tabla.cellWidget(row, 2)
-                vendido = spin.value()
-                
-                # Cálculos
-                devolver = prod['cantidad'] - vendido
-                monto = vendido * prod['precio_neto']
-                
-                # Acumular totales
-                total_pagar += monto
-                total_devolver += devolver
-                
-                # Dibujar fila
-                c.drawString(25, y, prod['descripcion'])
-                c.drawString(225, y, str(prod['cantidad']))
-                c.drawString(325, y, str(vendido))
-                c.drawString(425, y, str(devolver))  # Nueva columna
-                c.drawString(525, y, f"${monto:.2f}")
-                y -= 20
-                
-                if y < 100:
-                    c.showPage()
-                    y = height - 50
-                    c.setFont("Helvetica-Bold", 10)
-                    c.drawString(25, y, "Producto")
-                    c.drawString(225, y, "Disponible")
-                    c.drawString(325, y, "Vendido")
-                    c.drawString(425, y, "Devolver")
-                    c.drawString(525, y, "Monto a Pagar")
-                    y -= 30
-                    c.setFont("Helvetica", 10)
-            
-            # Totales
-            c.setFont("Helvetica-Bold", 12)
-            c.drawString(50, y, f"Total a Pagar: ${total_pagar:.2f}")
-            c.drawString(50, y - 20, f"Total a Devolver: {total_devolver} unidades")
-            
-            c.save()
+                    # Acumular totales
+                    total_pagar += monto
+                    total_devolver += devolver
 
-            with open(filename, 'rb') as f:
-                contenido = f.read()
+                    # Agregar fila a los datos de la tabla
+                    datos_tabla.append({
+                        "Producto": prod['descripcion'],
+                        "Disponible": str(prod['cantidad']),
+                        "Vendido": str(vendido),
+                        "Devolver": str(devolver),
+                        "A Pagar": f"${monto:.2f}"
+                    })
 
-            nombre_archivo = os.path.basename(filename)
-            self.parent().db.crear_reporte_pdf(
-                self.parent().current_concesion_id,
-                nombre_archivo,
-                contenido
-            )
+                # Agregar la tabla al cuerpo del reporte
+                elementos.append({
+                    "tipo": "tabla",
+                    "datos": datos_tabla,
+                    "columnas": columnas
+                })
 
-            QMessageBox.information(self, "Éxito", "PDF generado correctamente y almacenado en la base de datos")
-            self.accept()
+                # Agregar los totales como texto
+                totales_texto = (
+                    f"Total a Pagar: ${total_pagar:.2f}\n"
+                    f"Total a Devolver: {total_devolver} unidades"
+                )
+                elementos.append({
+                    "tipo": "texto",
+                    "contenido": totales_texto
+                })
+
+                # Generar el PDF usando la clase Reporte
+                reporte.generar_pdf(filename, titulo_reporte, elementos)
+
+                # Guardar el PDF en la base de datos
+                with open(filename, 'rb') as f:
+                    contenido = f.read()
+                nombre_archivo = os.path.basename(filename)
+                self.parent().db.crear_reporte_pdf(
+                    self.parent().current_concesion_id,
+                    nombre_archivo,
+                    contenido
+                )
+
+                QMessageBox.information(self, "Éxito", "PDF generado correctamente y almacenado en la base de datos")
+                self.accept()
+
+            except Exception as e:
+                QMessageBox.critical(self, "Error", f"No se pudo generar el PDF: {str(e)}")
