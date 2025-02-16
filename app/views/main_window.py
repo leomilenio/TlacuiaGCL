@@ -317,8 +317,10 @@ class MainWindow(QMainWindow):
             QMessageBox.information(self, "Éxito", "PDF exportado correctamente")
             dialog.close()
 
-
     def manejar_fin_concesion(self):
+        if not self.verificar_concesion_seleccionada():
+            return
+
         concesion = self.db.obtener_concesion_por_id(self.current_concesion_id)
         
         if concesion['finalizada']:
@@ -489,10 +491,9 @@ class MainWindow(QMainWindow):
                 self.lista_documentos.addItem(item)
     
     def editar_concesion(self):
-        """Abre diálogo para editar la concesión seleccionada"""
-        if not self.current_concesion_id:
+        if not self.verificar_concesion_seleccionada():
             return
-            
+        
         # Obtener datos actuales
         concesion_data = self.db.cursor.execute(
             "SELECT * FROM Concesiones WHERE id = ?", 
@@ -505,10 +506,9 @@ class MainWindow(QMainWindow):
             self.mostrar_detalles_concesion()
     
     def agregar_documento(self):
-        """Añade nuevo documento a la concesión actual"""
-        if not self.current_concesion_id:
+        if not self.verificar_concesion_seleccionada():
             return
-            
+        
         file, _ = QFileDialog.getOpenFileName(
             self, "Seleccionar Documento", "", 
             "Archivos soportados (*.pdf *.xlsx *.xls)"
@@ -517,10 +517,9 @@ class MainWindow(QMainWindow):
             tipo = "PDF" if file.lower().endswith(".pdf") else "Excel"
             self.db.crear_documento(self.current_concesion_id, os.path.basename(file), tipo, file)
             self.actualizar_documentos()
-    
+        
     def eliminar_concesion(self):
-        """Elimina la concesión seleccionada"""
-        if not self.current_concesion_id:
+        if not self.verificar_concesion_seleccionada():
             return
             
         confirm = QMessageBox.question(
@@ -714,3 +713,9 @@ class MainWindow(QMainWindow):
     def mostrar_BuscarActualizaciones(self):
         dialog = UpdateDialog(self.version, self)
         dialog.exec()
+
+    def verificar_concesion_seleccionada(self):
+        if not self.current_concesion_id:
+            QMessageBox.warning(self, "Error", "¡Seleccione una concesión primero!")
+            return False
+        return True
