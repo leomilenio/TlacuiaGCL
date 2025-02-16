@@ -12,6 +12,8 @@ from app.views.dialogs.about_dialog import AboutDialog
 from app.views.tools.table_extractor import PdfTableExtractor
 from app.views.tools.congruence_analisis import AnalizadorCongruencias
 from app.views.tools.gslibCut_analisis import AnalizadorCorteGeslib
+from app.views.dialogs.update_dialog import UpdateDialog
+from app.models.json_extract import extract_version_from_file
 from datetime import datetime
 import shutil
 
@@ -27,6 +29,11 @@ class MainWindow(QMainWindow):
 
         if os.path.exists('concesiones.db'):
             self.mostrar_alerta_concesiones()
+
+
+        base_path = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
+        file_path = os.path.join(base_path, 'app', 'models', 'dev_info.json')
+        self.version = extract_version_from_file(file_path).get('version', 'desconocida')
 
             # Crear la barra de menú
         menubar = self.menuBar()
@@ -59,7 +66,12 @@ class MainWindow(QMainWindow):
         help_menu = menubar.addMenu('Ayuda')
         about_action = QAction('Acerca de', self)
         about_action.triggered.connect(self.mostrar_acercaDe)
+
+        update_action = QAction('Buscar actualizaciones', self)
+        update_action.triggered.connect(self.mostrar_BuscarActualizaciones)
+
         help_menu.addAction(about_action)
+        help_menu.addAction(update_action)
 
     def initUI(self):
         self.setGeometry(100, 100, 1300, 600)  # Aumentamos el tamaño de la ventana
@@ -696,4 +708,8 @@ class MainWindow(QMainWindow):
 
     def mostrar_CongruenciaDeCorteGESLib(self):
         dialog = AnalizadorCorteGeslib()
+        dialog.exec()
+
+    def mostrar_BuscarActualizaciones(self):
+        dialog = UpdateDialog(self.version, self)
         dialog.exec()

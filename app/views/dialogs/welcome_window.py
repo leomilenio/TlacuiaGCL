@@ -1,12 +1,75 @@
-from PyQt5.QtWidgets import QMainWindow, QVBoxLayout, QHBoxLayout, QWidget, QPushButton, QLabel, QListWidget, QListWidgetItem, QMessageBox
-from PyQt5.QtCore import Qt
-from PyQt5.QtGui import QColor
+from PyQt5.QtWidgets import QMainWindow, QVBoxLayout, QHBoxLayout, QWidget, QPushButton, QLabel, QListWidget, QListWidgetItem, QMessageBox, QStyledItemDelegate
+from PyQt5.QtCore import Qt, QMargins
+from PyQt5.QtGui import QPainter, QColor, QBrush, QPen, QFont
 from datetime import datetime
 from app.views.main_window import MainWindow
 from app.models.json_extract import (extract_version_from_file)
 from app.models.database import ConcesionesDB
 from app.views.dialogs.update_dialog import UpdateDialog
 import os
+
+# Delegado personalizado para dibujar los elementos con bordes redondeados
+class CustomItemDelegate(QStyledItemDelegate):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+
+    def paint(self, painter, option, index):
+        # Obtener el texto del elemento
+        text = index.data(Qt.DisplayRole)
+        status = index.data(Qt.UserRole)  # Usaremos UserRole para almacenar el estado
+
+        # Configurar el color de fondo según el estado
+        if status == 'Valido':
+            background_color = QColor(178, 219, 142, 244)  # Verde con 30% de transparencia
+        elif status == 'Vence pronto':
+            background_color = QColor(245, 229, 121, 244)  # Amarillo con 30% de transparencia
+        elif status == 'Vencido':
+            background_color = QColor(223, 206, 107, 244)  # Rojo con 30% de transparencia
+        else:
+            background_color = QColor(255, 255, 255, 200)  # Blanco con 30% de transparencia
+
+        # Dibujar el rectángulo con bordes redondeados
+        painter.save()
+        painter.setRenderHint(QPainter.Antialiasing)
+
+        # Margen interno (10 píxeles)
+        margin = 5
+        rect = option.rect.adjusted(margin, margin, -margin, -margin)
+
+        # Dibujar el fondo
+        painter.setBrush(QBrush(background_color))
+        painter.setPen(QPen(Qt.NoPen))  # Sin borde externo
+        painter.drawRoundedRect(rect, 10, 10)  # Bordes redondeados con radio 10
+
+        # Separar el texto en tres partes: emisor, folio, días restantes
+        parts = text.split(" | ")
+        emisor = parts[0]
+        folio = parts[1]
+        dias_restantes = parts[2]
+
+        # Fuente en negrita
+        font = QFont()
+        font.setBold(True)
+        painter.setFont(font)
+
+        # Margen interno para el texto
+        text_margin = 5
+        text_rect = rect.adjusted(text_margin, text_margin, -text_margin, -text_margin)
+
+        # Alinear el texto: emisor a la izquierda, folio al centro, días restantes a la derecha
+        painter.setPen(Qt.black)  # Color del texto
+        painter.drawText(text_rect, Qt.AlignLeft | Qt.AlignVCenter, emisor)
+        painter.drawText(text_rect, Qt.AlignHCenter | Qt.AlignVCenter, folio)
+        painter.drawText(text_rect, Qt.AlignRight | Qt.AlignVCenter, dias_restantes)
+
+        painter.restore()
+
+    def sizeHint(self, option, index):
+            # Ajustar el tamaño del elemento para incluir márgenes
+            size = super().sizeHint(option, index)
+            margins = QMargins(10, 10, 10, 10)  # Márgenes de 10 píxeles en cada lado
+            return size.grownBy(margins)  # Aplicar los márgenes
+
 
 class WelcomeWindow(QMainWindow):
     def __init__(self):
@@ -18,10 +81,8 @@ class WelcomeWindow(QMainWindow):
         self.setWindowTitle("Tlacuia - Gestor de Concesiones para Librerías")
         self.setGeometry(100, 100, 900, 600)  # Dimensiones de la ventana
 
-
         base_path = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
         file_path = os.path.join(base_path, 'app', 'models', 'dev_info.json')
-
         self.version = extract_version_from_file(file_path).get('version', 'desconocida')
 
         # Layout principal (HBox)
@@ -34,7 +95,7 @@ class WelcomeWindow(QMainWindow):
         left_vbox.addWidget(QLabel(f"Versión: {self.version}", styleSheet="font-size: 12px;"))
 
         # Botón 1: Iniciar gestor de concesiones
-        btn_iniciar_gestor = QPushButton("Iniciar Gestor de Concesiones")
+        btn_iniciar_gestor = QPushButton("Gestor de Concesiones")
         btn_iniciar_gestor.setStyleSheet("background-color: #386F53; color: white; padding: 25px;")
         btn_iniciar_gestor.clicked.connect(self.iniciar_gestor_concesiones)
         left_vbox.addWidget(btn_iniciar_gestor)
@@ -63,17 +124,10 @@ class WelcomeWindow(QMainWindow):
         self.lista_concesiones.setStyleSheet("""
             QListWidget {
                 border: none;
-                background: #012030;
+                background: #012030; /* Fondo oscuro */
             }
             QListWidget::item {
-                border-bottom: 1px solid #ddd;
-            }
-            QListWidget::item:hover {
-                background: #4F8FAA;
-            }
-            QListWidget::item:selected {
-                background: #13678A;
-                color: white;
+                margin: 5px; /* Espaciado entre elementos */
             }
         """)
         self.actualizar_lista_concesiones()  # Cargar las concesiones
@@ -91,7 +145,6 @@ class WelcomeWindow(QMainWindow):
     def actualizar_lista_concesiones(self):
         self.lista_concesiones.clear()
         concesiones = self.db.obtener_concesiones()
-
         for concesion in concesiones:
             if concesion['status'] == 'Vencido':
                 continue  # No mostrar concesiones vencidas
@@ -104,15 +157,13 @@ class WelcomeWindow(QMainWindow):
             item_text = f"{emisor} | {folio} | {dias_restantes} días restantes"
             item = QListWidgetItem(item_text)
 
-            # Colorear según el estado
-            if concesion['status'] == 'Valido':
-                item.setBackground(QColor(0, 255, 0, 50))  # Verde
-            elif concesion['status'] == 'Vence pronto':
-                item.setBackground(QColor(255, 255, 0, 50))  # Amarillo
-            elif dias_restantes == 0:
-                item.setBackground(QColor(255, 0, 0, 50))  # Rojo
+            # Asignar el estado como UserRole
+            item.setData(Qt.UserRole, concesion['status'])
 
             self.lista_concesiones.addItem(item)
+
+        # Aplicar el delegado personalizado
+        self.lista_concesiones.setItemDelegate(CustomItemDelegate(self.lista_concesiones))
 
     def obtener_nombre_emisor(self, emisor_id):
         """Obtiene el nombre del emisor desde la base de datos."""

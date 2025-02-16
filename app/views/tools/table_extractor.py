@@ -7,7 +7,7 @@ import ollama
 import json
 import requests
 import pandas as pd
-
+import subprocess
 from PyQt5.QtWidgets import (QVBoxLayout, QHBoxLayout, QPushButton, QFileDialog,
                              QTableWidget, QTableWidgetItem, QSpinBox, QListWidget, QLabel,
                              QMessageBox, QLineEdit, QComboBox, QListWidgetItem, QDialog, QInputDialog,
@@ -27,6 +27,13 @@ class PdfTableExtractor(QDialog):
         self.is_load_pdf_enabled = True 
         self.db = ConcesionesDB()
         self.initUI()
+
+        # Verificar si Ollama y Mistral están instalados
+        if self.check_ollama_and_mistral_installed():
+            self.btn_choose_method.setEnabled(True)  # Habilitar el botón
+        else:
+            self.btn_choose_method.setEnabled(False)  # Deshabilitar el botón
+            QMessageBox.warning(self, "Advertencia", "Ollama o Mistral no están instalados. Por favor, instale Mistral y Ollama para utilizar esta funcion.")
 
     def initUI(self):
         self.setWindowTitle("Extractor de Tablas PDF")
@@ -963,3 +970,24 @@ class PdfTableExtractor(QDialog):
             except Exception as e:
                 QMessageBox.critical(self, "Error", f"No se pudo guardar la respuesta: {str(e)}")
         dialog.accept()
+
+    import subprocess
+
+    def check_ollama_and_mistral_installed(self):
+        """
+        Verifica si Ollama y Mistral están instalados en el sistema.
+        :return: Booleano indicando si ambos están instalados.
+        """
+        try:
+            print("Se ha ejecutado el metodo check_ollama_and_mistral")
+            # Verificar si Ollama está instalado
+            subprocess.run(["ollama", "--version"], check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            
+            # Verificar si Mistral está disponible a través de Ollama
+            result = subprocess.run(["ollama", "list"], check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+            if "mistral" not in result.stdout.lower():
+                return False
+            
+            return True
+        except (subprocess.CalledProcessError, FileNotFoundError):
+            return False
