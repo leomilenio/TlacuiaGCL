@@ -33,7 +33,7 @@ class PdfTableExtractor(QDialog):
             self.btn_choose_method.setEnabled(True)  # Habilitar el botón
         else:
             self.btn_choose_method.setEnabled(False)  # Deshabilitar el botón
-            QMessageBox.warning(self, "Advertencia:", "Ollama o Mistral no están instalados. Por favor, instale Mistral y Ollama para utilizar funciones de IA.")
+            QMessageBox.warning(self, "Advertencia:", "No se detecto a Ollama o Mistral en sus sistema. \n Las herramientas de IA estaran desactivadas.")
 
     def initUI(self):
         self.setWindowTitle("Extractor de Tablas PDF")
