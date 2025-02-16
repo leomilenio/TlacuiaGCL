@@ -6,7 +6,7 @@ def extract_version_from_file(json_path):
     """Lee un archivo JSON y extrae sus metadatos."""
     print("extract_version_from_file is executed...")
     try:
-        with open(json_path, 'r') as file:
+        with open(json_path, 'r', encoding='utf-8') as file:
             data = json.load(file)
         version = None
         release_notes = None

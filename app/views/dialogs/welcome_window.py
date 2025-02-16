@@ -6,6 +6,7 @@ from app.views.main_window import MainWindow
 from app.models.json_extract import (extract_version_from_file)
 from app.models.database import ConcesionesDB
 from app.views.dialogs.update_dialog import UpdateDialog
+from app.views.dialogs.about_dialog import AboutDialog
 import os
 
 # Delegado personalizado para dibujar los elementos con bordes redondeados
@@ -115,6 +116,11 @@ class WelcomeWindow(QMainWindow):
         btn_buscar_actualizaciones.clicked.connect(self.mostrar_dialogo_actualizaciones)
         left_vbox.addWidget(btn_buscar_actualizaciones)
 
+        # Boton 4: Acerca de
+        btn_about = QPushButton("Acerca de")
+        btn_about.setStyleSheet("background-color: #1E90FF; color: white; border-radius: 10px; padding: 10px;")
+        btn_about.clicked.connect(self.mostrar_acercaDe)
+        left_vbox.addWidget(btn_about)
         # Columna derecha (VBox): Lista de concesiones activas y próximas a vencer
         right_vbox = QVBoxLayout()
         right_vbox.addWidget(QLabel("Concesiones Activas y Próximas a Finalizar:", styleSheet="font-size: 18px; font-weight: bold;"))
@@ -186,3 +192,7 @@ class WelcomeWindow(QMainWindow):
         """Muestra el diálogo de búsqueda de actualizaciones."""
         dialog = UpdateDialog(self.version, self)
         dialog.exec_()
+    
+    def mostrar_acercaDe(self):
+        dialog = AboutDialog()
+        dialog.exec()

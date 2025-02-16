@@ -21,9 +21,20 @@ class AboutDialog(QDialog):
         self.license_file_path = os.path.join(base_path, 'LICENSE.txt')
 
         self.setWindowTitle("Acerca de")
-        self.setFixedSize(300, 200)
+        self.setFixedSize(300, 350)
 
         layout = QVBoxLayout()
+
+        # Logo del software
+        logo_path = os.path.join(base_path, 'app', 'resources', 'media', 'TlacuiaLogo.png')  # Ruta del logo
+        logo_label = QLabel(self)
+        pixmap = QPixmap(logo_path)
+        if not pixmap.isNull():  # Verificar si la imagen se cargó correctamente
+            logo_label.setPixmap(pixmap.scaled(150, 150, Qt.KeepAspectRatio, Qt.SmoothTransformation))  # Escalar el logo
+            logo_label.setAlignment(Qt.AlignCenter)
+        else:
+            logo_label.setText("Logo no encontrado")  # Mensaje de error si no se encuentra el logo
+        layout.addWidget(logo_label)
 
         title = QLabel("<h1> Tlacuia GCL </h1>")
         title.setAlignment(Qt.AlignCenter)
@@ -85,4 +96,4 @@ class AboutDialog(QDialog):
         license_dialog.exec()
 
     def show_easter_egg(self, event):
-        QMessageBox.information(self, "Un mensaje!", "Te quiero mucho Armando!!")
+        QMessageBox.information(self, "Un mensaje!", "Te adoro un monton Armando!!")

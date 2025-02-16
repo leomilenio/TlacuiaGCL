@@ -87,7 +87,7 @@ class MainWindow(QMainWindow):
         # Cabecera
         header = QWidget()
         header_layout = QHBoxLayout()
-        header_layout.addWidget(QLabel("Tlacuia - Concesiones", styleSheet="font-weight: bold;"))
+        header_layout.addWidget(QLabel("Lista de Concesiones", styleSheet="font-weight: bold;"))
         header_layout.addStretch(50)
         
         currentDate = QDate.currentDate().toString("dd/MM/yyyy")
