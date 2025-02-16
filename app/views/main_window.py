@@ -143,6 +143,7 @@ class MainWindow(QMainWindow):
         self.lista.setStyleSheet("""
             QListWidget {
                 border: none;
+                border-radius: 5px;
                 background: #012030;
             }
             QListWidget::item {
@@ -204,7 +205,7 @@ class MainWindow(QMainWindow):
         # Documentos adjuntos
         details_layout.addWidget(QLabel("Documentos Adjuntos:", styleSheet="font-weight: bold; margin-top: 15px;"))
         self.lista_documentos = QListWidget()
-        self.lista_documentos.setStyleSheet("background: #012030; border-radius: 5px;")
+        self.lista_documentos.setStyleSheet("background: #012030; border-radius: 5px; color: white")
         details_layout.addWidget(self.lista_documentos)
         
         self.lista_documentos.itemDoubleClicked.connect(self.mostrar_menu_documento)
@@ -213,11 +214,11 @@ class MainWindow(QMainWindow):
         # Botones de acción
         btn_layout = QHBoxLayout()
         self.btn_editar = QPushButton("Editar")
-        self.btn_editar.setStyleSheet("background: #4CAF50; color: white; padding: 8px;")
+        self.btn_editar.setStyleSheet("background: #4CAF50; color: white; border-radius: 10px; padding: 8px;")
         self.btn_editar.clicked.connect(self.editar_concesion)
         
         self.btn_eliminar = QPushButton("Eliminar")
-        self.btn_eliminar.setStyleSheet("background: #F44336; color: white; padding: 8px;")
+        self.btn_eliminar.setStyleSheet("background: #F44336; color: white; border-radius: 10px; padding: 8px;")
         self.btn_eliminar.clicked.connect(self.eliminar_concesion)
         
         self.btn_agregar_doc = QPushButton("Añadir Documento")

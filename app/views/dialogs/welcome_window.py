@@ -96,13 +96,13 @@ class WelcomeWindow(QMainWindow):
 
         # Botón 1: Iniciar gestor de concesiones
         btn_iniciar_gestor = QPushButton("Gestor de Concesiones")
-        btn_iniciar_gestor.setStyleSheet("background-color: #386F53; color: white; padding: 25px;")
+        btn_iniciar_gestor.setStyleSheet("background-color: #386F53; color: white; border-radius: 10px; padding: 25px;")
         btn_iniciar_gestor.clicked.connect(self.iniciar_gestor_concesiones)
         left_vbox.addWidget(btn_iniciar_gestor)
 
         # Botón 2: Asistente de bodega
         btn_asistente_bodega = QPushButton("Asistente de Bodega")
-        btn_asistente_bodega.setStyleSheet("background-color: #386F53; color: white; padding: 25px;")
+        btn_asistente_bodega.setStyleSheet("background-color: #386F53; color: white; border-radius: 10px; padding: 25px;")
         btn_asistente_bodega.clicked.connect(self.asistente_bodega)
         left_vbox.addWidget(btn_asistente_bodega)
 
@@ -111,7 +111,7 @@ class WelcomeWindow(QMainWindow):
 
         # Botón 3: Buscar actualizaciones
         btn_buscar_actualizaciones = QPushButton("Buscar Actualizaciones")
-        btn_buscar_actualizaciones.setStyleSheet("background-color: #1E90FF; color: white; padding: 10px;")
+        btn_buscar_actualizaciones.setStyleSheet("background-color: #1E90FF; color: white; border-radius: 10px; padding: 10px;")
         btn_buscar_actualizaciones.clicked.connect(self.mostrar_dialogo_actualizaciones)
         left_vbox.addWidget(btn_buscar_actualizaciones)
 
@@ -124,6 +124,7 @@ class WelcomeWindow(QMainWindow):
         self.lista_concesiones.setStyleSheet("""
             QListWidget {
                 border: none;
+                border-radius: 10px;
                 background: #012030; /* Fondo oscuro */
             }
             QListWidget::item {

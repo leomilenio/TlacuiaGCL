@@ -178,7 +178,7 @@ class ConcesionItem(QWidget):
         
         # Formato visual
         self.lbl_emisor.setFixedWidth(150)
-        self.lbl_emisor.setStyleSheet("font-weight: bold;")
+        self.lbl_emisor.setStyleSheet("font-weight: bold; color: white")
         self.lbl_folio.setStyleSheet("color: white;")
         
         # Color según estado
