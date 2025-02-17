@@ -1,6 +1,7 @@
 name: TlacuiaGCL
 channels:
   - defaults
+  - conda-forge
 dependencies:
   - bzip2=1.0.8=h80987f9_6
   - ca-certificates=2024.12.31=hca03da5_0

@@ -232,7 +232,7 @@ class MainWindow(QMainWindow):
         details_layout.addWidget(QLabel("Productos:", styleSheet="font-weight: bold;"))
         details_layout.addWidget(self.tabla_productos)
 
-        self.lbl_finalizada = QLabel("CONCESIÓN FINALIZADA")
+        self.lbl_finalizada = QLabel("CONCESIÓN FINALIZADA: REPORTE ALMACENADO EN LA BASE DE DATOS")
         self.lbl_finalizada.setStyleSheet("""
             color: #FF0000;
             font-weight: bold;
@@ -327,6 +327,8 @@ class MainWindow(QMainWindow):
             self.manejar_exportar_pdf()
         else:
             self.mostrar_fin_concesion_dialogo()
+        
+        self.actualizar_documentos()
 
     def mostrar_fin_concesion_dialogo(self):
         productos = self.db.obtener_productos_por_concesion(self.current_concesion_id)
@@ -338,7 +340,7 @@ class MainWindow(QMainWindow):
 
     def actualizar_ui_finalizada(self):
         self.lbl_finalizada.show()
-        self.btn_fin_concesion.setText("Generar PDF")
+        self.btn_fin_concesion.setText("Volver a exportar reporte")
         self.btn_agregar_producto.setEnabled(False)
         self.btn_agregar_doc.setEnabled(False)
 
