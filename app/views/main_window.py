@@ -236,7 +236,7 @@ class MainWindow(QMainWindow):
         self.lbl_finalizada.setStyleSheet("""
             color: #FF0000;
             font-weight: bold;
-            font-size: 16px;
+            font-size: 15px;
             padding: 8px;
             border: 2px solid #FF0000;
             border-radius: 5px;
