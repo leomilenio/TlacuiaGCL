@@ -4,6 +4,16 @@ from PyQt5.QtWidgets import QApplication
 from PyQt5.QtGui import QIcon
 from app.views.dialogs.welcome_window import WelcomeWindow
 
+def resource_path(relative_path):
+    """ Obtener la ruta absoluta al recurso icono,para desarrollo como para ejecutables 
+    empaquetados """
+    try:
+        # PyInstaller crea un directorio temporal y almacena los recursos en _MEIPASS
+        base_path = sys._MEIPASS
+    except Exception:
+        base_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    return os.path.join(base_path, relative_path)
+
 def main():
     app = QApplication(sys.argv)
 
