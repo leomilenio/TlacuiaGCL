@@ -19,3 +19,13 @@ logs/
 *.pdf
 *.syntex.gz
 *.toc
+
+#Ignora los archivos de compilacion generados por NUITKA
+dist/
+main.dist/
+main.onefile-build/
+build/
+main.build/
+*.logs
+.cache/
+Nuitka-*/
