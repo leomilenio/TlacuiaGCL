@@ -10,9 +10,10 @@ Write-Host "Compilando la aplicación con Nuitka..."
 
 nuitka `
     --standalone `
-    --onefile `
+    # --onefile `
     --windows-icon-from-ico="$ICON_FILE" `
     --windows-console-mode=disable `
+    --windows-splash-screen="app/resources/media/Splashscreen.BMP" `
     --enable-plugin=pyqt5 `
     --include-data-file="$JSON_FILE=app/models/dev_info.json" `
     --include-data-file="$ICON_FILE=app/resources/icons/icon.ico" `
