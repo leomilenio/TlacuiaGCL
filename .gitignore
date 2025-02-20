@@ -21,6 +21,7 @@ logs/
 *.toc
 
 #Ignora los archivos de compilacion generados por NUITKA
+main.spec
 dist/
 main.dist/
 main.onefile-build/
