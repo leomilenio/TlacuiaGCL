@@ -1,4 +1,5 @@
 from PyQt5.QtCore import Qt
+from PyQt5.QtGui import QColor, QFont
 from PyQt5.QtWidgets import QDialog, QVBoxLayout, QLabel, QListWidget, QPushButton, QListWidgetItem
 
 
@@ -24,6 +25,13 @@ class AlertDialog(QDialog):
             
             for concesion in concesiones:
                 item = QListWidgetItem(f"Emisor: {concesion['emisor']}, Folio: {concesion['folio']}, Días restantes: {concesion['dias_restantes']}")
+                
+                # Cambiamos el tamaño de la fuente y el color del texto
+                font = QFont()
+                font.setPointSize(14)  # Tamaño de fuente más grande
+                item.setFont(font)
+                item.setForeground(QColor(255, 255, 255))  # Color blanco
+                
                 self.lista_concesiones.addItem(item)
             
             layout.addWidget(self.lista_concesiones)

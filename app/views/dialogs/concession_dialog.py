@@ -212,6 +212,10 @@ class EditConcesionDialog(NewConcesionDialog):
         super().__init__(parent)
         self.setWindowTitle("Editar Concesión")
         self.concesion_id = concesion_data[0]
+
+        # Deshabilitar elementos innecesarios
+        self.deshabilitar_elementos_no_editables()
+
         self.cargar_datos_iniciales(concesion_data)
     
     def cargar_datos_iniciales(self, data):
@@ -238,6 +242,31 @@ class EditConcesionDialog(NewConcesionDialog):
             self.rdb_fecha.setChecked(True)
             self.date_vencimiento.setDate(QDate.fromString(data[5], "yyyy-MM-dd"))
     
+    def deshabilitar_elementos_no_editables(self):
+        """Deshabilita todos los elementos excepto los relacionados con el emisor"""
+        # Lista de widgets a deshabilitar
+        widgets_a_deshabilitar = [
+            self.cmb_tipo,
+            self.txt_folio,
+            self.date_recepcion,
+            self.rdb_dias,
+            self.rdb_fecha,
+            self.spn_dias,
+            self.date_vencimiento,
+            self.btn_seleccionar_docs,
+            self.lista_docs,
+            self.btn_limpiar,
+            self.btn_listo
+        ]
+        
+        # Deshabilitar cada widget
+        for widget in widgets_a_deshabilitar:
+            widget.setEnabled(False)
+        
+        # Ocultar la lista de documentos adjuntos
+        self.lista_docs.hide()
+        self.btn_seleccionar_docs.hide()
+
     def guardar_concesion(self):
         """Actualiza los datos en lugar de crear nuevos"""
         # Actualizar emisor
@@ -251,9 +280,6 @@ class EditConcesionDialog(NewConcesionDialog):
             self.txt_nombre_vendedor.text(),
             self.concesion_id
         ))
-        
-        # Resto de la lógica de actualización similar a guardar_concesion...
-        # (Implementar según estructura de tu base de datos)
         
         self.db.conn.commit()
         self.accept()

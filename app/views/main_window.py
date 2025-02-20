@@ -607,7 +607,8 @@ class MainWindow(QMainWindow):
 
     def mostrar_pdf_extractor(self):
         dialog = PdfTableExtractor()
-        dialog.exec()
+        if dialog.exec():
+            self.actualizar_documentos()
 
     def abrir_extractor_con_documento(self, doc_id):
         """Abre PdfTableExtractor con el archivo PDF asociado al documento"""
@@ -706,11 +707,13 @@ class MainWindow(QMainWindow):
                     
     def mostrar_Analizador_Congruencia(self):
         dialog = AnalizadorCongruencias()
-        dialog.exec()
+        if dialog.exec():
+            self.actualizar_documentos()
 
     def mostrar_CongruenciaDeCorteGESLib(self):
         dialog = AnalizadorCorteGeslib()
-        dialog.exec()
+        if dialog.exec():
+            self.actualizar_documentos()
 
     def mostrar_BuscarActualizaciones(self):
         dialog = UpdateDialog(self.version, self)
