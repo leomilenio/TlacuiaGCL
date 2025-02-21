@@ -55,64 +55,77 @@ class FinConcesionDialog(QDialog):
         filename, _ = QFileDialog.getSaveFileName(
             self, "Guardar PDF", "", "PDF (*.pdf)"
         )
-
         if filename:
             try:
                 # Crear una instancia de la clase Reporte
                 reporte = Reporte(app_name="Tlacuia GCL", margins=(50, 50, 50, 50), orientation="vertical")
-
+                
                 # Datos para el encabezado y el cuerpo del reporte
                 titulo_reporte = "Reporte Final de Concesión"
                 elementos = []
-
+                
                 # Construir los datos de la tabla
                 columnas = ["Producto", "Disponible", "Vendido", "Devolver", "A Pagar"]
                 datos_tabla = []
                 total_pagar = 0
                 total_devolver = 0
-
+                ganancia_total_estimada = 0  # Nuevo cálculo
+                
                 for row in range(self.tabla.rowCount()):
                     prod = self.productos[row]
                     spin = self.tabla.cellWidget(row, 2)
                     vendido = spin.value()
-
+                    
                     # Cálculos
                     devolver = prod['cantidad'] - vendido
                     monto = vendido * prod['precio_neto']
-
+                    ganancia_producto = (vendido * prod['pvp_unitario']) - (vendido * prod['precio_neto'])
+                    
                     # Acumular totales
                     total_pagar += monto
                     total_devolver += devolver
-
-                    # Agregar fila a los datos de la tabla
+                    ganancia_total_estimada += ganancia_producto
+                    
+                    # Dividir el campo "Producto" si es demasiado largo
+                    descripcion = prod['descripcion']
+                    max_chars = 15  # Máximo número de caracteres por línea
+                    lineas_descripcion = reporte._dividir_texto_en_lineas(descripcion, max_chars)
+                    descripcion_formateada = "\n".join(lineas_descripcion)  # Unir las líneas con saltos de línea
+                    
                     datos_tabla.append({
-                        "Producto": prod['descripcion'],
+                        "Producto": descripcion_formateada,
                         "Disponible": str(prod['cantidad']),
                         "Vendido": str(vendido),
                         "Devolver": str(devolver),
                         "A Pagar": f"${monto:.2f}"
                     })
-
+                
                 # Agregar la tabla al cuerpo del reporte
                 elementos.append({
                     "tipo": "tabla",
                     "datos": datos_tabla,
                     "columnas": columnas
                 })
-
+                
                 # Agregar los totales como texto
                 totales_texto = (
                     f"Total a Pagar: ${total_pagar:.2f}\n"
-                    f"Total a Devolver: {total_devolver} unidades"
+                    f"Total a Devolver: {total_devolver} unidades\n"
+                    f"Ganancia Total Estimada: ${ganancia_total_estimada:.2f}"
                 )
                 elementos.append({
                     "tipo": "texto",
                     "contenido": totales_texto
                 })
-
+                
                 # Generar el PDF usando la clase Reporte
-                reporte.generar_pdf(filename, titulo_reporte, elementos)
-
+                reporte.generar_pdf(
+                    filename=filename,
+                    titulo_reporte=titulo_reporte,
+                    elementos=elementos,
+                    max_chars=15  # Pasar el valor de max_chars
+                )
+                
                 # Guardar el PDF en la base de datos
                 with open(filename, 'rb') as f:
                     contenido = f.read()
@@ -122,9 +135,7 @@ class FinConcesionDialog(QDialog):
                     nombre_archivo,
                     contenido
                 )
-
                 QMessageBox.information(self, "Éxito", "PDF generado correctamente y almacenado en la base de datos")
                 self.accept()
-
             except Exception as e:
                 QMessageBox.critical(self, "Error", f"No se pudo generar el PDF: {str(e)}")

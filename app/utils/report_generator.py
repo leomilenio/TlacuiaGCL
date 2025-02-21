@@ -62,7 +62,7 @@ class Reporte:
             print(f"Error al leer el archivo JSON: {str(e)}")
             self.version = "version desconocida"
 
-    def generar_pdf(self, filename=None, titulo_reporte="", elementos=None, advertencias=None, save_dialog=False):
+    def generar_pdf(self, filename=None, titulo_reporte="", elementos=None, advertencias=None, save_dialog=False, max_chars=30):
         """
         Genera un PDF con los resultados del análisis.
         :param filename: Ruta donde se guardará el archivo PDF. Si es None y save_dialog es True, se abrirá un cuadro de diálogo.
@@ -108,7 +108,7 @@ class Reporte:
                 tipo = elemento.get("tipo")
                 if tipo == "tabla":
                     y, page_number = self._dibujar_tabla(
-                        c, y, elemento["datos"], elemento["columnas"], width, height, bottom_margin, page_number
+                        c, y, elemento["datos"], elemento["columnas"], width, height, bottom_margin, page_number, max_chars=max_chars
                     )
                 elif tipo == "texto":
                     y = self._dibujar_texto(c, y, elemento["contenido"], width, bottom_margin)
@@ -159,7 +159,7 @@ class Reporte:
         c.drawString(50, y, f"Fecha: {datetime.now().strftime('%d/%m/%Y %H:%M:%S')}")
         return y - 20
 
-    def _dibujar_tabla(self, c, y, datos, columnas, width, height, bottom_margin, page_number):
+    def _dibujar_tabla(self, c, y, datos, columnas, width, height, bottom_margin, page_number, max_chars=30):
         """
         Dibuja una tabla en el PDF con soporte para paginación.
         :param c: Objeto Canvas de ReportLab.
@@ -169,6 +169,7 @@ class Reporte:
         :param width: Ancho de la página.
         :param bottom_margin: Margen inferior.
         :param page_number: Número de página actual.
+        :param max_chars: Máximo número de caracteres por línea (predeterminado: 30).
         :return: Posición vertical actualizada después de la tabla.
         """
         left_margin, right_margin, top_margin, _ = self.margins  # Extraer márgenes
@@ -207,19 +208,28 @@ class Reporte:
             # Dibujar los datos de la fila
             x_offset = left_margin
             c.setFont("OfficeCodePro-Regular", 10)
+
+            # Calcular la cantidad máxima de líneas adicionales en esta fila
+            max_lineas_adicionales = 0
             for columna in columnas:
                 valor = fila.get(columna, "")
-                if isinstance(valor, str) and len(valor) > 30:
-                    line1 = valor[:30]
-                    line2 = valor[30:]
-                    c.drawString(x_offset, y, line1)
-                    y -= 10
-                    c.drawString(x_offset, y, line2)
+                if isinstance(valor, str):
+                    lineas = self._dividir_texto_en_lineas(valor, max_chars)
+                    max_lineas_adicionales = max(max_lineas_adicionales, len(lineas) - 1)
+
+            # Dibujar cada columna
+            for columna in columnas:
+                valor = fila.get(columna, "")
+                if isinstance(valor, str):
+                    lineas = self._dividir_texto_en_lineas(valor, max_chars)
+                    for i, linea in enumerate(lineas):
+                        c.drawString(x_offset, y - (i * 10), linea)  # Ajustar posición vertical solo para esta columna
                 else:
                     c.drawString(x_offset, y, str(valor))
                 x_offset += 100
 
-            y -= 20  # Reducir la posición vertical después de dibujar una fila
+            # Reducir la posición vertical después de dibujar una fila
+            y -= (20 + max_lineas_adicionales * 10)  # Ajustar `y` según las líneas adicionales
             fila_index += 1
 
         return y, page_number  # Devolver la posición vertical actualizada y el número de página
