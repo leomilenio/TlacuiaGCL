@@ -254,9 +254,7 @@ class EditConcesionDialog(NewConcesionDialog):
             self.spn_dias,
             self.date_vencimiento,
             self.btn_seleccionar_docs,
-            self.lista_docs,
-            self.btn_limpiar,
-            self.btn_listo
+            self.lista_docs
         ]
         
         # Deshabilitar cada widget
